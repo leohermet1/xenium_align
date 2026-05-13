@@ -1,0 +1,14 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Xenium Alignment",
+    "section": "",
+    "text": "This toolkit provides a pipeline for the automatic whole slide alignment between Xenium and post-Xenium spatial data (mIF, H&E).\n\nCore Objective\nThe goal is to bridges the gap between different imaging technologies by mapping annotated cell coordinates from one system to another.\nLeveraging SimpleITK, the registration process is based on correlation between image intensities in two complementary steps:\n\nRigid Transformation: Pre-alignment to correct for rotation and translation.\nLocal Deformation (B-Spline): Fine-tuning to account for non-linear differences between images.\n\n\n\n\n\n\n\nWorkflow\n\n\n\nThe alignment is image-based. Once the registration is finalized, the resulting composite transformation (Rigid + Non-rigid) is applied to spatial annotations (e.g. cell boundaries).\n\n\n\nWhy go beyond Xenium Explorer?\nImage Alignment in Xenium Explorer requires the user to manually define anchor points (landmarks) and relies on Affine transformations.\nIn contrast, this automated approach removes the manual constraints with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.\nAlso, as noted in the 10x Genomics Analysis Guide:\n\n“Realistically, two different microscope systems will use different FOV boundaries and different preprocessing… Correcting for lens distortion requires nonlinear transformation and is a fundamentally different problem from image registration.”\n\nBy using a B-Spline transformation, we compensate for the “optical distortion” mentioned by 10x Genomics, resolving local non-linearities that fall outside the scope of a global affine transformation.\n\n\n\nTranslation, Rotation (Rigid), Affine (Xenium Explorer Alignment), and Elastic (B-Spline).\n\n\n\n\n\n\n\n\nValidation & Comparison\n\n\n\nIn the Validation module, we provide tools to compare the composite transformation results against affine alignments, quantifying the gain in precision (IoU, distance error).\n\n\n\n\n\nStep-by-Step Pipeline\n\nData Preparation: Load and format images, cell boundaries (e.g., Xenium outputs).\nImage Registration: Automatic alignment using SimpleITK.\nTransformation: Map spatial annotations (such as cell boundaries) into the target coordinate system.\nValidation: Validate the result using IoU and distance error against ground truth segmentation.",
+    "crumbs": [
+      "Overview",
+      "Documentation",
+      "Toolkit Overview"
+    ]
+  }
+]

@@ -1,0 +1,41 @@
+project:
+  type: website
+  output-dir: "."
+  resources:
+    - images/
+
+website:
+  title: "XeniumAlign"
+  navbar:
+    background: primary
+    left:
+      - href: index.qmd
+        text: "Overview"
+      - icon: github
+        href: https://github.com/leohermet1/xenium_align
+  
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - section: "Documentation"
+        contents:
+          - text: "Toolkit Overview"
+            href: index.qmd
+      - section: "Tutorials"
+        contents:
+          - text: "1. Data Preparation"
+            href: analysis/01_preprocessing.ipynb
+          - text: "2. Image Registration"
+            href: analysis/02_registration.ipynb
+          - text: "3. Cell Transformation"
+            href: analysis/02_transformation.ipynb
+          - text: "4. Validation"
+            href: analysis/03_validation.ipynb
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    code-fold: show

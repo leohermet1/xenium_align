@@ -1,0 +1,31 @@
+/* Police moderne type documentation */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+    color: #24292e;
+}
+
+/* Sidebar à gauche (le menu) */
+.quarto-sidebar {
+    background-color: #f8f9fa;
+    border-right: 1px solid #e1e4e8;
+}
+
+.sidebar-section-title {
+    font-weight: 700 !important;
+    color: #000000 !important;
+    margin-top: 1rem;
+}
+
+/* Style des titres */
+h1 {
+    font-weight: 700;
+    font-size: 2.2rem;
+    margin-top: 2rem;
+}
+
+/* Le bloc de note avec l'alerte jaune */
+.callout-note.callout {
+    border-left-color: #fcc419;
+    background-color: #fff9db;
+}
