@@ -6,8 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Leo Hermet">
 
-<title>Xenium Alignment – XeniumAlign</title>
+<title>Data Preparation – XeniumAlign</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,26 +21,61 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-ea385d0e468b0dd5ea5bf0780b1290d9.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-4ee4070156267f5ad6565edb307d634d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-ea385d0e468b0dd5ea5bf0780b1290d9.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-4ee4070156267f5ad6565edb307d634d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -79,7 +115,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">XeniumAlign</span>
     </a>
   </div>
@@ -90,7 +126,7 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link active" href="../index.html" aria-current="page"> 
 <span class="menu-text">Overview</span></a>
   </li>  
   <li class="nav-item compact">
@@ -109,7 +145,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Documentation</a></li><li class="breadcrumb-item"><a href="./index.html">Toolkit Overview</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../analysis/01_preprocessing.html">Tutorials</a></li><li class="breadcrumb-item"><a href="../analysis/01_preprocessing.html">1. Data Preparation</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -140,7 +176,7 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Toolkit Overview</span></a>
   </div>
 </li>
@@ -157,25 +193,25 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./analysis/01_preprocessing.html" class="sidebar-item-text sidebar-link">
+  <a href="../analysis/01_preprocessing.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">1. Data Preparation</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./analysis/02_registration.qmd" class="sidebar-item-text sidebar-link">
+  <a href="../analysis/02_registration.qmd" class="sidebar-item-text sidebar-link">
  <span class="menu-text">2. Image Registration</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./analysis/02_transformation.qmd" class="sidebar-item-text sidebar-link">
+  <a href="../analysis/02_transformation.qmd" class="sidebar-item-text sidebar-link">
  <span class="menu-text">3. Cell Transformation</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./analysis/03_validation.qmd" class="sidebar-item-text sidebar-link">
+  <a href="../analysis/03_validation.qmd" class="sidebar-item-text sidebar-link">
  <span class="menu-text">4. Validation</span></a>
   </div>
 </li>
@@ -191,23 +227,28 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#core-objective" id="toc-core-objective" class="nav-link active" data-scroll-target="#core-objective">Core Objective</a></li>
-  <li><a href="#step-by-step-pipeline" id="toc-step-by-step-pipeline" class="nav-link" data-scroll-target="#step-by-step-pipeline">Step-by-Step Pipeline</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Documentation</a></li><li class="breadcrumb-item"><a href="./index.html">Toolkit Overview</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../analysis/01_preprocessing.html">Tutorials</a></li><li class="breadcrumb-item"><a href="../analysis/01_preprocessing.html">1. Data Preparation</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Xenium Alignment</h1>
+<h1 class="title">Data Preparation</h1>
 </div>
 
 
 
 <div class="quarto-title-meta">
 
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Leo Hermet </p>
+          </div>
+  </div>
     
   
     
@@ -218,66 +259,15 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>This toolkit provides a pipeline for the <strong>automatic whole slide alignment</strong> between <strong>Xenium</strong> and <strong>post-Xenium</strong> spatial data (mIF, H&amp;E).</p>
-<section id="core-objective" class="level3">
-<h3 class="anchored" data-anchor-id="core-objective">Core Objective</h3>
-<p>The goal is to bridges the gap between different imaging technologies by mapping annotated cell coordinates from one system to another.</p>
-<p>Leveraging <strong>SimpleITK</strong>, the registration process is based on <strong>correlation between image intensities</strong> in two complementary steps:</p>
-<ol type="1">
-<li><p><strong>Rigid Transformation</strong>: Pre-alignment to correct for rotation and translation.</p></li>
-<li><p><strong>Local Deformation (B-Spline)</strong>: Fine-tuning to account for non-linear differences between images.</p></li>
-</ol>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>This notebook document the loading and preprocess of OME-TIFF images for alignement.</p>
+<div id="1bb8a008" class="cell" data-execution_count="1">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> xenium_align <span class="im">as</span> xa</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
-<div class="callout-title-container flex-fill">
-Workflow
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The alignment is image-based. Once the registration is finalized, the resulting composite transformation (Rigid + Non-rigid) is applied to spatial annotations (e.g.&nbsp;cell boundaries).</p>
-</div>
-</div>
-<section id="why-go-beyond-xenium-explorer" class="level4">
-<h4 class="anchored" data-anchor-id="why-go-beyond-xenium-explorer">Why go beyond Xenium Explorer?</h4>
-<p><strong>Image Alignment in Xenium Explorer</strong> requires the user to manually define <strong>anchor points</strong> (landmarks) and relies on <strong>Affine</strong> transformations.</p>
-<p>In contrast, this automated approach removes the manual constraints with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.</p>
-<p>Also, as noted in the <a href="https://www.10xgenomics.com/analysis-guides/he-to-xenium-dapi-image-registration-with-fiji">10x Genomics Analysis Guide</a>:</p>
-<blockquote class="blockquote">
-<p>“Realistically, two different microscope systems will use different FOV boundaries and different preprocessing… Correcting for lens distortion requires nonlinear transformation and is a fundamentally different problem from image registration.”</p>
-</blockquote>
-<p>By using a <strong>B-Spline transformation</strong>, we compensate for the “optical distortion” mentioned by 10x Genomics, resolving local non-linearities that fall outside the scope of a global affine transformation.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="images/transformation_types.png" class="img-fluid figure-img" alt="Illustration of transformation types."></p>
-<figcaption>Translation, Rotation (Rigid), Affine (Xenium Explorer Alignment), and Elastic (B-Spline).</figcaption>
-</figure>
-</div>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Validation &amp; Comparison
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>In the <a href="analysis/03_validation.ipynb">Validation</a> module, we provide tools to compare the composite transformation results against affine alignments, quantifying the gain in precision (IoU, distance error).</p>
-</div>
-</div>
-</section>
-</section>
-<section id="step-by-step-pipeline" class="level3">
-<h3 class="anchored" data-anchor-id="step-by-step-pipeline">Step-by-Step Pipeline</h3>
-<ul>
-<li><p><strong><a href="./analysis/01_preprocessing.html">Data Preparation</a></strong>: Load and format images, cell boundaries (e.g., Xenium outputs).</p></li>
-<li><p><strong><a href="analysis/02_registration.qmd">Image Registration</a></strong>: Automatic alignment using SimpleITK.</p></li>
-<li><p><strong><a href="analysis/02_transformation.qmd">Transformation</a></strong>: Map spatial annotations (such as cell boundaries) into the target coordinate system.</p></li>
-<li><p><strong><a href="analysis/03_validation.qmd">Validation</a></strong>: Validate the result using IoU and distance error against ground truth segmentation.</p></li>
-</ul>
 
 
 </section>

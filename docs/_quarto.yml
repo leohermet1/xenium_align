@@ -25,13 +25,13 @@ website:
       - section: "Tutorials"
         contents:
           - text: "1. Data Preparation"
-            href: analysis/01_preprocessing.ipynb
+            href: analysis/01_preprocessing.qmd
           - text: "2. Image Registration"
-            href: analysis/02_registration.ipynb
+            href: analysis/02_registration.qmd
           - text: "3. Cell Transformation"
-            href: analysis/02_transformation.ipynb
+            href: analysis/02_transformation.qmd
           - text: "4. Validation"
-            href: analysis/03_validation.ipynb
+            href: analysis/03_validation.qmd
 
 format:
   html:

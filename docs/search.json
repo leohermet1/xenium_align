@@ -1,5 +1,17 @@
 [
   {
+    "objectID": "analysis/01_preprocessing.html",
+    "href": "analysis/01_preprocessing.html",
+    "title": "Data Preparation",
+    "section": "",
+    "text": "Introduction\nThis notebook document the loading and preprocess of OME-TIFF images for alignement.\n\n\nCode\nimport xenium_align as xa",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Data Preparation"
+    ]
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "Xenium Alignment",

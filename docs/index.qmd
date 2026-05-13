@@ -39,10 +39,10 @@ In the [Validation](analysis/03_validation.ipynb) module, we provide tools to co
 
 ### Step-by-Step Pipeline
 
-* **[Data Preparation](analysis/01_preprocessing.ipynb)**: Load and format images, cell boundaries (e.g., Xenium outputs).
+* **[Data Preparation](analysis/01_preprocessing.qmd)**: Load and format images, cell boundaries (e.g., Xenium outputs).
 
-* **[Image Registration](analysis/02_registration.ipynb)**: Automatic alignment using SimpleITK.
+* **[Image Registration](analysis/02_registration.qmd)**: Automatic alignment using SimpleITK.
 
-* **[Transformation](analysis/02_transformation.ipynb)**: Map spatial annotations (such as cell boundaries) into the target coordinate system.
+* **[Transformation](analysis/02_transformation.qmd)**: Map spatial annotations (such as cell boundaries) into the target coordinate system.
 
-* **[Validation](analysis/03_validation.ipynb)**:  Validate the result using IoU and distance error against ground truth segmentation.
+* **[Validation](analysis/03_validation.qmd)**:  Validate the result using IoU and distance error against ground truth segmentation.

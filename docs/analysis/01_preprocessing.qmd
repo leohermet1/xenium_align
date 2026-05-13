@@ -1,0 +1,16 @@
+---
+title: "Data Preparation"
+author: "Leo Hermet"
+format:
+  html:
+    code-fold: true
+    toc: true
+jupyter: python3
+---
+
+# Introduction
+This notebook document the loading and preprocess of OME-TIFF images for alignement.
+
+```{python}
+import xenium_align as xa
+```
