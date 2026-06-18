@@ -21,7 +21,7 @@ def create_rgb_composite(fixed, moving):
     
     return rgb
 
-def registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir, mesh_size):
+def registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir, mesh_size = 10, inverse = False):
     """Generate and save a 1x3 panel comparing registration steps."""
     # Resample initial moving to fixed space for the "Initial" plot
     moving_initial = sitk.Resample(moving, fixed, sitk.Transform(), sitk.sitkLinear, 0.0)
@@ -48,7 +48,10 @@ def registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir,
         ax.axis('off')
         
     plt.tight_layout()
-    output_path = os.path.join(combo_dir, f"registration_{mesh_size}.png")
+    if inverse:
+        output_path = os.path.join(combo_dir, f"registration_{mesh_size}_inverse.png")
+    else:
+        output_path = os.path.join(combo_dir, f"registration_{mesh_size}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 

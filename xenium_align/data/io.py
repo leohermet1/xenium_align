@@ -9,11 +9,62 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import shapely
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, shape
+import orjson
+
+import anndata as ad
+import spatialdata as sd
+from spatialdata.models import ShapesModel, TableModel
+
 
 logger = logging.getLogger(__name__)
 
-def load_downsampled_image(path, level_index=0):
+
+
+_CHANNELS: dict[str, dict[str, str]] = {
+    "DAPI":  {"v4_prefix": "ch0000_", "legacy": "morphology_focus_0000.ome.tif"},
+    "ATP1A": {"v4_prefix": "ch0001_", "legacy": "morphology_focus_0001.ome.tif"},
+    "18S":   {"v4_prefix": "ch0002_", "legacy": "morphology_focus_0003.ome.tif"},
+}
+
+
+def get_xenium_image_paths(xe_dir: Path | str) -> dict[str, Path]:
+    """
+    Return morphology image paths for a Xenium run directory.
+    
+    Supports XOA v4.0+ dynamic naming (``ch0000_dapi.ome.tif``)
+    and legacy numeric filenames (``morphology_focus_0000.ome.tif``).
+    
+    Parameters
+    ----------
+    xe_dir
+        Root directory of the Xenium run output.
+        
+    Returns
+    -------
+    dict[str, Path]
+        Mapping of channel name → image path.
+        Keys: ``"DAPI"``, ``"ATP1A"``, ``"18S"``.
+    """
+    morphology_dir = Path(xe_dir) / "morphology_focus"
+    
+    # XOA v4.0+: ch0000_<name>.ome.tif
+    paths = {
+        name: matches[0]
+        for name, cfg in _CHANNELS.items()
+        if (matches := sorted(morphology_dir.glob(f"{cfg['v4_prefix']}*.ome.tif")))
+    }
+    
+    # Fallback to legacy filenames if any channel is missing
+    if len(paths) < len(_CHANNELS):
+        paths = {
+            name: morphology_dir / cfg["legacy"]
+            for name, cfg in _CHANNELS.items()
+        }
+        
+    return paths
+
+def load_downsampled_image(path, level_index=3):
     """
     Example: Load a specific pyramidal level as numpy array.
     """
@@ -53,7 +104,7 @@ def get_ome_metadata(path):
         }
 
 
-def calculate_pyramidal_offset(path, level_idx, meta_xe):
+def calculate_pyramidal_offset(path, meta_xe, level_idx = 3):
     """
     Calculates the spatial offset between a pyramid level and the full-resolution image.
     
@@ -130,33 +181,39 @@ def uncompress_snappy_to_geojson(input_snappy, output_geojson):
     gdf_fixed.to_file(output_geojson)
 
 
-def export_xenium_to_pixel_geojson(parquet_path, meta_xe, output_path):
-    """
-    Convert Xenium nucleus_boundaries.parquet (µm) to .geojson (pixel)
-    """
-    # Load nucleus_boundaries.parquet
-    df = pd.read_parquet(parquet_path)
-    # Transform coords to pixel
-    coords = np.ascontiguousarray(df[['vertex_x', 'vertex_y']].values, dtype=np.float64)
-    coords[:, 0] /= meta_xe['orig_spacing_x']
-    coords[:, 1] /= meta_xe['orig_spacing_y']
-    # Transform pixel vertices to polygons (cells)
-    ids = df['cell_id'].values
-    changes = np.where(ids[1:] != ids[:-1])[0] + 1
-    ring_offsets = np.concatenate(([0], changes, [len(df)])).astype(np.int64)
-    poly_offsets = np.arange(len(ring_offsets), dtype=np.int64)
-    geoms = shapely.from_ragged_array(
-        shapely.GeometryType.POLYGON, 
-        coords, 
-        (ring_offsets, poly_offsets)
-    )
-    unique_ids = ids[ring_offsets[:-1]]
-    # Create final geodataframe
-    gdf = gpd.GeoDataFrame({'cell_id': unique_ids, 'class': 'Nucleus'}, geometry=geoms)
-    gdf_fixed = _fix_geom(gdf)
-    gdf_fixed.to_file(output_path)
 
-def _fix_geom(gdf):
+
+
+def load_gdf_pixel_to_microns(input_path, meta, index_col_name):
+    gdf = gpd.read_file(input_path)
+    spacing_x, spacing_y = meta['orig_spacing_x'], meta['orig_spacing_y']
+    # Convert to microns
+    gdf.geometry = gdf.geometry.scale(xfact=spacing_x, yfact=spacing_y, origin=(0,0))
+    gdf.crs = None
+    # Preparation of indices: drop existing, reset, and rename
+    gdf = gdf.reset_index().rename(columns={'index': index_col_name})
+    
+    return gdf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def _fix_geodataframe(gdf):
     # Repair and filter geometries
     gdf['geometry'] = gdf.geometry.make_valid()
     gdf['geometry'] = gdf.geometry.apply(_clean_geom)
@@ -175,13 +232,116 @@ def _clean_geom(geom):
         return max(polys, key=lambda a: a.area) if polys else None
     return None
 
-def load_gdf_pixel_to_microns(input_path, meta, index_col_name):
-    gdf = gpd.read_file(input_path)
-    spacing_x, spacing_y = meta['orig_spacing_x'], meta['orig_spacing_y']
-    # Convert to microns
-    gdf.geometry = gdf.geometry.scale(xfact=spacing_x, yfact=spacing_y, origin=(0,0))
-    gdf.crs = None
-    # Preparation of indices: drop existing, reset, and rename
-    gdf = gdf.reset_index().rename(columns={'index': index_col_name})
-    
+def _load_snappy_as_gdf(path: Path, output_geojson: Path | None = None) -> gpd.GeoDataFrame:
+    with open(path, 'rb') as f:
+        decompressed_data = snappy.uncompress(f.read())
+    data_dict = orjson.loads(decompressed_data)
+    gdf = gpd.GeoDataFrame.from_features(data_dict).explode(index_parts=False)
+    gdf = _fix_geodataframe(gdf)
+    gdf.index = pd.Index([f"cell_{i}" for i in range(len(gdf))], name="cell_id")
+    gdf["objectType"] = "annotation"
+    gdf["name"] = gdf.index 
+    if output_geojson is not None:
+        gdf.to_file(output_geojson, driver="GeoJSON")
     return gdf
+
+def _to_anndata(gdf: gpd.GeoDataFrame) -> ad.AnnData:
+    centroids = shapely.get_coordinates(gdf.geometry.centroid)
+    obs = gdf.drop(columns="geometry").copy()
+    for col in obs.columns:
+        if obs[col].apply(lambda x: isinstance(x, (dict, list))).any():
+            obs[col] = obs[col].apply(json.dumps)
+    obs["region"] = "cells"
+    obs["instance_id"] = np.arange(len(gdf))
+    adata = ad.AnnData(obs=obs)
+    adata.obsm["spatial"] = centroids
+    return adata
+
+
+def _to_spatialdata(gdf: gpd.GeoDataFrame, adata: ad.AnnData) -> sd.SpatialData:
+    return sd.SpatialData(
+        shapes={"cells": ShapesModel.parse(gdf)},
+        tables={"table": TableModel.parse(adata)},
+    )
+
+
+def read_cellvit(path: str | Path, output_geojson: str | Path | None = None) -> sd.SpatialData:
+    """Load a CellViT++ cells.geojson.snappy file and return a SpatialData object."""
+    gdf = _load_snappy_as_gdf(Path(path), Path(output_geojson) if output_geojson else None)
+    adata = _to_anndata(gdf)
+    return _to_spatialdata(gdf, adata)
+
+
+
+
+def export_xenium_to_pixel_geojson(
+    xenium_dir, 
+    meta_xe, 
+    output_dir, 
+    export_cells: bool = True, 
+    export_nucleus: bool = True
+):
+    """
+    Convert Xenium nucleus_boundaries.parquet (µm) and / or cell_boundaries.parquet (µm) to .geojson (pixel)
+    """
+    targets = []
+    if export_cells:
+        targets.append(("cell_boundaries.parquet", "cells_xenium_fixed.geojson", "Cell"))
+    if export_nucleus:
+        targets.append(("nucleus_boundaries.parquet", "nucleus_xenium_fixed.geojson", "Nucleus"))
+        
+    for filename, output_name, feature_class in targets:
+        parquet_path = Path(xenium_dir) / filename
+        output_path = Path(output_dir) / output_name
+        
+        if not parquet_path.exists():
+            continue
+            
+        # Load nucleus_boundaries.parquet
+        df = pd.read_parquet(parquet_path)
+        # Transform coords to pixel
+        coords = np.ascontiguousarray(df[['vertex_x', 'vertex_y']].values, dtype=np.float64)
+        coords[:, 0] /= meta_xe['orig_spacing_x']
+        coords[:, 1] /= meta_xe['orig_spacing_y']
+        # Transform pixel vertices to polygons (cells)
+        ids = df['cell_id'].values
+        changes = np.where(ids[1:] != ids[:-1])[0] + 1
+        ring_offsets = np.concatenate(([0], changes, [len(df)])).astype(np.int64)
+        poly_offsets = np.arange(len(ring_offsets), dtype=np.int64)
+        geoms = shapely.from_ragged_array(
+            shapely.GeometryType.POLYGON, 
+            coords, 
+            (ring_offsets, poly_offsets)
+        )
+        unique_ids = ids[ring_offsets[:-1]]
+        # Create final geodataframe
+        gdf = gpd.GeoDataFrame({'name': unique_ids, 'type': 'detection'}, geometry=geoms)
+        gdf_fixed = _fix_geodataframe(gdf)
+        gdf_fixed.to_file(output_path)
+
+
+
+from shapely.geometry import Point
+import anndata as ad
+import os
+
+def load_xenium_adata(
+    h5ad_path: str, meta_xe: dict, combo_dir: str
+) -> gpd.GeoDataFrame:
+    """Read Xenium h5ad, convert micron coordinates to native pixels using meta_xe, and save to GeoJSON for QuPath."""
+    adata = ad.read_h5ad(h5ad_path)
+    phys_xe = adata.obsm["spatial"]
+    px_xe = phys_xe / [meta_xe["orig_spacing_x"], meta_xe["orig_spacing_y"]]
+    transformed_points = [Point(pt[0], pt[1]) for pt in px_xe]
+    data = {}
+    if "cell_type" in adata.obs.columns:
+        data["name"] = adata.obs["cell_type"].values
+        data["classification"] = adata.obs["cell_type"].values
+    else:
+        data["name"] = adata.obs_names
+        data["classification"] = "Cell"
+    gdf_pixels = gpd.GeoDataFrame(data, geometry=transformed_points)
+    output_path = os.path.join(combo_dir, f"xenium_cells_pixels.geojson")
+    gdf_pixels.to_file(output_path, driver="GeoJSON")
+    print(f"Exported {len(gdf_pixels)} cells to {output_path}")
+    return gdf_pixels

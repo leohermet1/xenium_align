@@ -24,18 +24,15 @@ website:
             href: index.qmd
       - section: "Tutorials"
         contents:
-          - text: "1. Data Preparation"
-            href: analysis/01_preprocessing.qmd
-          - text: "2. Image Registration"
-            href: analysis/02_registration.qmd
-          - text: "3. Cell Transformation"
+          - text: "1. Image Registration"
+            href: analysis/01_registration.qmd
+          - text: "2. Cell Transformation"
             href: analysis/02_transformation.qmd
-          - text: "4. Validation"
+          - text: "5. Validation"
             href: analysis/03_validation.qmd
 
 format:
   html:
     theme: cosmo
-    css: styles.css
     toc: true
     code-fold: show

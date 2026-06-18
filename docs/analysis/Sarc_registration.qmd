@@ -1,0 +1,93 @@
+---
+title: "Alignment"
+author: "Leo Hermet"
+format:
+  html:
+    code-fold: true
+    toc: true
+jupyter: python3
+---
+
+# --- IMPORTS ---
+```{python}
+from pathlib import Path
+import matplotlib.pyplot as plt
+import spatialdata_io
+import os
+
+import xenium_align as xa
+```
+
+# --- PATHS ---
+```{python Load }
+# HE
+HE_IMG_PATH = Path("HE.ome.tif")
+HE_ADATA_PATH = Path("xenium_adata.h5ad")
+# XENIUM
+XE_DIR = Path("xenium_dir")
+XE_IMG_PATH = xa.data.get_xenium_image_paths(XE_DIR)
+# Output directory
+output_dir = Path("./Xenium_HE_sarc_registration_results")
+output_dir.mkdir(parents=True, exist_ok=True)
+# Deformation resolution
+ms = 10
+```
+
+# --- LOAD IMAGES ---
+```{python Load }
+# --- SOURCE (H&E) ---
+# Load hematoxylin
+raw_he, meta_he = xa.data.load_downsampled_image(HE_IMG_PATH)
+## Rewrite real spacing of HPS slide
+TRUE_SPACING_UM = 0.3272900358604477
+meta_he['orig_spacing_x'] = TRUE_SPACING_UM
+meta_he['orig_spacing_y'] = TRUE_SPACING_UM
+meta_he['spacing'] = (
+    TRUE_SPACING_UM * meta_he['scale_x'], 
+    TRUE_SPACING_UM * meta_he['scale_y']
+)
+he_proc = xa.data.prepare_he(raw_he)
+
+# --- TARGET (Xenium) ---
+# Load DAPI
+XE_IMG_PATH_DAPI = XE_IMG_PATH.pop("DAPI")
+dapi, meta_xe = xa.data.load_downsampled_image(XE_IMG_PATH_DAPI)
+channels_raw = {"DAPI": dapi}
+offset_x, offset_y = xa.data.calculate_pyramidal_offset(XE_IMG_PATH_DAPI, meta_xe)
+# Load other channels
+channels_raw.update({
+    name: xa.data.load_downsampled_image(path)[0] 
+    for name, path in XE_IMG_PATH.items()
+})
+channels_proc, combos = xa.data.prepare_xe_generate_combination(channels_raw)
+# Define the composite image to match
+combo_name = 'DAPI_ATP1A'
+channels_to_combine = combos[combo_name]
+xe_proc = xa.data.combine_xenium_channels(channels_proc, channels_to_combine)
+```
+
+
+# --- REGISTRATION ---
+```{python Registration}
+combo_dir = os.path.join(output_dir, combo_name)
+if not os.path.exists(combo_dir): os.makedirs(combo_dir)
+
+
+fixed = xa.data.get_sitk_image(he_proc, meta_he)
+moving = xa.data.get_sitk_image(xe_proc, meta_xe)
+# Visualize initial overlap
+xa.plot.single_overlay(fixed, moving, combo_dir, "initial.png")
+# Run registration
+moving_rigid, tx_rigid, moving_bspline, tx_bspline = xa.module.run_registration(fixed, moving, combo_dir, ms)
+# Visualize results
+xa.plot.registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir, ms)
+xa.plot.local_deformations(fixed, tx_bspline, combo_dir, ms)
+```
+
+# --- TRANSFORM CELLS ---
+```{python}
+## Load proseg segmentations (adata) and save them as .geojson
+gdf_xe_pixels = xa.data.load_xenium_adata(HE_ADATA_PATH, meta_xe, combo_dir)
+## Transform cells from gdf to .geojson
+gdf_he = xa.module.transform_xenium_adata_to_he(gdf_xe_pixels, meta_he, meta_xe, combo_dir, ox=offset_x, oy=offset_y, ms)
+```

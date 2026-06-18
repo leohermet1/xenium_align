@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def run_registration(fixed, moving, combo_dir, ms):
+def run_registration(fixed, moving, combo_dir, ms = 10):
     # Step 1: Execute global alignment (Rigid)
     logger.info(f"Running rigid registration...")
     tx_rigid, moving_rigid = rigid_registration(fixed, moving)

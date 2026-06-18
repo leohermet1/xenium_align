@@ -41,7 +41,7 @@ def _compute_jacobian_map(fixed_img, outTx_Bspline):
     jacobian_det = sitk.DisplacementFieldJacobianDeterminant(displacement_field)
     return sitk.GetArrayFromImage(jacobian_det)
 
-def local_deformations(fixed_img, outTx_Bspline, mesh_size, spline_order, output_dir):
+def local_deformations(fixed_img, outTx_Bspline, output_dir, mesh_size = 10, spline_order = 3, inverse = False):
     # Prepare background image
     fixed_boosted = sitk.GetArrayFromImage(boost_intensity(fixed_img))
     # Prepare local deformation visualizations
@@ -64,6 +64,9 @@ def local_deformations(fixed_img, outTx_Bspline, mesh_size, spline_order, output
     axs[1].axis('off')
     # Save report
     plt.tight_layout()
-    output_path = os.path.join(output_dir, f"local_deformations_{mesh_size}.png")
+    if inverse:
+        output_path = os.path.join(output_dir, f"local_deformations_{mesh_size}_inverse.png")
+    else:
+        output_path = os.path.join(output_dir, f"local_deformations_{mesh_size}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
