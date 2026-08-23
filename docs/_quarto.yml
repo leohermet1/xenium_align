@@ -25,9 +25,9 @@ website:
       - section: "Tutorials"
         contents:
           - text: "1. Registration on toy dataset"
-            href: analysis/01_registration.qmd
+            href: analysis/01_ToyDataset.qmd
           - text: "2. Comparison between Xenium Explorer and sITK"
-            href: analysis/02_transformation.qmd
+            href: analysis/Registration_whole_slide.qmd
 
 format:
   html:
