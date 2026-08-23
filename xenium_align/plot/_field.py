@@ -41,27 +41,45 @@ def _compute_jacobian_map(fixed_img, outTx_Bspline):
     jacobian_det = sitk.DisplacementFieldJacobianDeterminant(displacement_field)
     return sitk.GetArrayFromImage(jacobian_det)
 
+def _compute_displacement_magnitude_map(fixed_img, outTx_Bspline):
+    # Generate displacement field (physical units = microns, same as fixed_img spacing)
+    displacement_field = sitk.TransformToDisplacementField(
+        outTx_Bspline, sitk.sitkVectorFloat64, fixed_img.GetSize(),
+        fixed_img.GetOrigin(), fixed_img.GetSpacing(), fixed_img.GetDirection()
+    )
+    disp_arr = sitk.GetArrayFromImage(displacement_field)  # (H, W, 2) -> [dx, dy] in microns
+    return np.sqrt(disp_arr[..., 0]**2 + disp_arr[..., 1]**2)
+
 def local_deformations(fixed_img, outTx_Bspline, output_dir, mesh_size = 10, spline_order = 3, inverse = False):
     # Prepare background image
     fixed_boosted = sitk.GetArrayFromImage(boost_intensity(fixed_img))
     # Prepare local deformation visualizations
     xx_px, yy_px, u, v = _get_bspline_grid(fixed_img, outTx_Bspline, mesh_size, spline_order)
     jac_arr = _compute_jacobian_map(fixed_img, outTx_Bspline)
+    disp_arr = _compute_displacement_magnitude_map(fixed_img, outTx_Bspline)
     
-    fig, axs = plt.subplots(1, 2, figsize=(25, 12))
-    # Subplot 1: Quiver plot of displacements
+    fig, axs = plt.subplots(1, 3, figsize=(37, 12))
+    # Quiver plot of displacements
     axs[0].imshow(fixed_boosted, cmap='Reds', alpha=0.8)
     axs[0].quiver(xx_px, yy_px, -u, -v, color='black', units='xy', angles='xy', 
                   scale_units='xy', scale=1, width=8, headwidth=4, headlength=5)
     axs[0].scatter(xx_px, yy_px, color='blue', s=5, alpha=0.7)
     axs[0].set_title(f"Displacement field (Mesh: {mesh_size})")
     axs[0].axis('off')
-    # Subplot 2: Jacobian determinant heatmap
-    im = axs[1].imshow(jac_arr, cmap=get_jacobian_cmap(), vmin=0.9, vmax=1.1)
-    plt.colorbar(im, ax=axs[1], shrink=0.6, label='det(Jac)')
+    # Displacement magnitude heatmap (microns)
+    im = axs[1].imshow(disp_arr, cmap='inferno', vmin=0, vmax=np.percentile(disp_arr, 99))
+    plt.colorbar(im, ax=axs[1], shrink=0.6, label='Displacement (µm)')
     axs[1].imshow(fixed_boosted, alpha=0.2, cmap='gray')
-    axs[1].set_title("Jacobian Determinant")
+    axs[1].set_title("Displacement Magnitude")
     axs[1].axis('off')
+    # Jacobian determinant heatmap
+    im = axs[2].imshow(jac_arr, cmap=get_jacobian_cmap(), vmin=0.9, vmax=1.1)
+    cbar = plt.colorbar(im, ax=axs[2], shrink=0.6)
+    cbar.set_ticks([0.9, 1.0, 1.1])
+    cbar.set_ticklabels(['Expansion', '', 'Compression'])
+    axs[2].imshow(fixed_boosted, alpha=0.2, cmap='gray')
+    axs[2].set_title("Jacobian Determinant")
+    axs[2].axis('off')
     # Save report
     plt.tight_layout()
     if inverse:

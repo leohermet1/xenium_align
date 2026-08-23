@@ -7,23 +7,25 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def prepare_he(image_rgb):
+def prepare_he(image_rgb, signal = 99):
     # Deconvolve RGB image to HED space
+    ## HED = closest match to HES (no exact matrix available); works fine
+    ## here since we only keep the hematoxylin channel, shared with HE/HES
     stains = separate_stains(image_rgb, hed_from_rgb)
     hematoxylin = stains[:, :, 0]
-    # Remove noise by saturating the top 1% pixels
-    threshold = np.percentile(hematoxylin, 99)
-    hematoxylin[hematoxylin >= threshold] = 0
+    if signal:
+        # Remove noise by saturating the top 1% pixels by default
+        threshold = np.percentile(hematoxylin, signal)
+        hematoxylin[hematoxylin >= threshold] = 0
     # Normalize intensity
     array_he = rescale_intensity(hematoxylin, out_range=(0, 255))
-
     return array_he
 
-def prepare_xe(image_data):
+def prepare_if(image_data):
     # Normalize single channel intensity
-    array_xe = rescale_intensity(image_data, out_range=(0, 255))
+    array_if = rescale_intensity(image_data, out_range=(0, 255))
 
-    return array_xe
+    return array_if
 
 def combine_xenium_channels(channels_arrays, channels_to_combine):
     logger.info(f"Combine {channels_to_combine}...")
@@ -38,7 +40,7 @@ def prepare_xe_generate_combination(channels_raw, reference_key="DAPI"):
     The combo that visually aligns the most with the Hematoxylin channel is 'DAPI_ATP1A'.
     """
     # Apply individual preprocessing to each raw channel
-    channels_proc = {k: prepare_xe(v) for k, v in channels_raw.items()}
+    channels_proc = {k: prepare_if(v) for k, v in channels_raw.items()}
     # Generate all possible combinations containing the reference key
     keys = list(channels_proc.keys())
     combos = {}
@@ -57,3 +59,33 @@ def get_sitk_image(lowres_array, meta):
     img_sitk.SetSpacing(meta['spacing'])
 
     return img_sitk
+
+def flip_if_needed(fixed, moving, meta, name="image", size=128):
+    meta['flip_extent'] = np.array([moving.shape[1] * meta['spacing'][0], moving.shape[0] * meta['spacing'][1]])
+    meta['flipped'] = False
+
+    def thumbnail(arr):
+        step_y = max(1, arr.shape[0] // size)
+        step_x = max(1, arr.shape[1] // size)
+        t = arr[::step_y, ::step_x].astype(np.float32)
+        t -= t.mean()
+        std = t.std()
+        return t / std if std > 0 else t
+
+    t_fixed = thumbnail(fixed)
+    t_moving = thumbnail(moving)
+
+    h = min(t_fixed.shape[0], t_moving.shape[0])
+    w = min(t_fixed.shape[1], t_moving.shape[1])
+    t_fixed, t_moving = t_fixed[:h, :w], t_moving[:h, :w]
+    t_moving_180 = t_moving[::-1, ::-1]
+
+    corr_0 = np.corrcoef(t_fixed.ravel(), t_moving.ravel())[0, 1]
+    corr_180 = np.corrcoef(t_fixed.ravel(), t_moving_180.ravel())[0, 1]
+    
+    if corr_180 > corr_0:
+        logger.info(f"Flipping {name}")
+        meta["flipped"] = True
+        moving = moving[::-1, ::-1]
+
+    return moving

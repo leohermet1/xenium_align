@@ -1,0 +1,98 @@
+---
+title: "1. Registration on toy dataset"
+author: "Leo Hermet"
+format:
+  html:
+    code-fold: true
+    toc: true
+jupyter: python3
+---
+
+# --- IMPORTS ---
+```{python}
+from pathlib import Path
+import matplotlib.pyplot as plt
+import spatialdata_io
+import os
+
+import xenium_align as xa
+```
+
+## Xenium and HES alignment
+# --- PATHS  ---
+```{python Load }
+# HE
+HE_IMG_PATH = Path("toy_dataset/HE.ome.tif")
+#HE_ADATA_PATH = Path("../xenium/1404/AN22001404_01_filtered.h5ad")
+# XENIUM
+XE_DIR = Path("toy_dataset/XENIUM/")
+XE_IMG_PATH = xa.data.get_xenium_image_paths(XE_DIR)
+# Output directory
+output_dir = Path("./toydataset_results")
+output_dir.mkdir(parents=True, exist_ok=True)
+```
+
+# --- IMAGES ---
+## Load images and metada
+To avoid long processing times, we load each image at a reduced resolution. Since the H&E and Xenium images are acquired on different microscopes, they have different native pixel spacings (µm/px). Each image's resolution level is therefore selected automatically to match a common target resolution (2 µm/px by default), chosen as a trade-off between alignment accuracy and computing time.
+
+```{python Load }
+meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name = xa.data.load_images_and_metadata(HE_IMG_PATH, XE_DIR, output_dir)
+```
+
+For HE/HES images, we extract only the hematoxylin channel using `separate_stains` from `skimage.color`. This single-channel nuclear signal is more directly comparable to the DAPI/nuclear channel of the Xenium IF image, which improves registration between the two modalities.
+
+However, this hematoxylin channel is not a pure DAPI-equivalent signal: color deconvolution is not perfectly specific to this stain combination (the HED matrix is only an approximation of HES, see above), so some signal from other channels leaks into it. To better match this broader signal, we therefore combine multiple Xenium IF channels : DAPI, ATP1A1, and 18S (rather than DAPI alone).
+
+You can also use DAPI alone, or any combination of two channels, if preferred, each combination is automatically saved to its own output folder named after the channels used.
+
+## Visualize images
+This helps assess how similar the two images are before running the registration.
+
+```{python}
+plt.figure(figsize=(15, 15))
+plt.imshow(proc_source)
+plt.axis('off')
+plt.savefig(f'{combo_dir}/proc_source.png', bbox_inches='tight', pad_inches=0)
+plt.close()
+
+plt.figure(figsize=(15, 15))
+plt.imshow(proc_target)
+plt.axis('off')
+plt.savefig(f'{combo_dir}/proc_target.png', bbox_inches='tight', pad_inches=0)
+plt.close()
+```
+
+
+# --- REGISTRATION ---
+```{python Registration}
+# Deformation resolution
+ms = 5
+# Load source and target images
+fixed = xa.data.get_sitk_image(proc_source, meta_source)
+moving = xa.data.get_sitk_image(proc_target, meta_target)
+# Run registration
+moving_rigid, tx_rigid, moving_bspline, tx_bspline = xa.module.run_registration(fixed, moving, combo_dir, ms)
+# Visualize results
+xa.plot.registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir, ms)
+xa.plot.local_deformations(fixed, tx_bspline, combo_dir, ms)
+```
+
+# --- TRANSFORM ---
+NOTE: The TRANSFORM and VALIDATION section can be re-run independently of the REGISTRATION section.
+However, the "Load images and metadata" section must be executed first to ensure metadata (e.g., `meta_source`, `meta_target`, `offset_x`, `offset_y`, `combo_dir`) are available.
+You also need to specify the `ms` use for the wanted REGISTRATION section.
+
+## sITK transform
+```{python}
+# From HE (source) to xenium (target)
+he_nucleus_geojson = Path("toy_dataset/HE_nucleus_coords.geojson")
+xa.module.apply_sitk_transform(he_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y)
+
+# From xenium (target) to HE (source)
+## Get xenium nucleus segmentation as .geojson
+xa.data.export_xenium_to_pixel_geojson(XE_DIR, meta_target, combo_dir)
+## Transform coordinates
+xe_nucleus_geojson = Path(combo_dir, "nucleus_xenium.geojson")
+xa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y, inverse = True)
+```

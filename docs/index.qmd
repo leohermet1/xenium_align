@@ -36,6 +36,17 @@ By using a **B-Spline transformation**, we compensate for the "optical distortio
 In the [Validation](analysis/03_validation.ipynb) module, we provide tools to compare the composite transformation results against affine alignments, quantifying the gain in precision (IoU, distance error).
 :::
 
+### Installation
+You can create an environment using [mamba](https://mamba.readthedocs.io/) and install the package.
+
+```bash
+# Create the environment from environment.yml
+mamba env create -f environment.yml
+# Activate it
+mamba activate xenium_align
+```
+
+
 
 ### Step-by-Step Pipeline
 

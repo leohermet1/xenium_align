@@ -10,28 +10,30 @@ logger = logging.getLogger(__name__)
 
 def match_and_compute_iou(gdf_pred, gdf_gt):
     """
-    Perform spatial join and calculate IoU/Distances.
+    Spatial join pred/gt geometries and compute intersection-over-gt-area / centroid distance,
+    keeping only the best-matching pred for each gt cell.
     """
-    # Spatial Join
-    matched = gpd.sjoin(gdf_pred, gdf_gt[['gt_idx', 'cell_id', 'class', 'geometry']], how="inner", predicate="intersects")
-    # Strict alignment via Merge
-    matched = matched.merge(
-        gdf_gt[['gt_idx', 'cell_id', 'class', 'geometry']],
-        on='gt_idx',
-        suffixes=('_pred', '_gt')
-    )
+    pairs = gdf_pred.sjoin(gdf_gt, how="inner", predicate="intersects")['index_right']
+
+    matched = gpd.GeoDataFrame({
+        'pred_idx': pairs.index,
+        'gt_idx': pairs.values,
+        'geometry_pred': gdf_pred.geometry.loc[pairs.index].values,
+        'geometry_gt': gdf_gt.geometry.loc[pairs.values].values,
+    })
+
     s_pred = gpd.GeoSeries(matched['geometry_pred'])
     s_gt = gpd.GeoSeries(matched['geometry_gt'])
-    # Compute IoU (Intersection and Union area)
-    intersection_area = s_pred.intersection(s_gt).area
-    union_area = s_pred.union(s_gt).area
-    matched['intersection_area'] = intersection_area
-    matched['iou'] = intersection_area / union_area
-    # Centroid Distance (Physical Shift)
+
+    matched['intersection_area'] = s_pred.intersection(s_gt).area
+    # Intersection over GT area
+    matched['iou'] = matched['intersection_area'] / s_gt.area
     matched['dist_error'] = s_pred.centroid.distance(s_gt.centroid)
-    best_matches = resolve_matches(matched)
+
+    # Keep only the best-matching pred per gt cell
+    best_matches = matched.sort_values('iou', ascending=False).drop_duplicates(subset='gt_idx', keep='first')
+
     summary_statistics(best_matches, gdf_pred, gdf_gt)
-    
     return best_matches
 
 def resolve_matches(matched):
@@ -53,9 +55,10 @@ def summary_statistics(best_matches, gdf_pred, gdf_gt):
     Show IoU metrics
     """
     mean_iou = best_matches['iou'].mean()
+    median_iou = best_matches['iou'].median()
     success_rate = (best_matches['iou'] > 0.5).sum() / len(gdf_pred) * 100
-    print(mean_iou)
     logger.info(f"Mean IoU: {mean_iou:.4f}")
+    logger.info(f"Median IoU: {median_iou:.4f}")
     logger.info(f"Success Rate (IoU > 0.5): {success_rate:.2f}%")
     logger.info(f"Average GT Area: {gdf_gt.geometry.area.mean():.2f}")
     logger.info(f"Average Pred Area: {gdf_pred.geometry.area.mean():.2f}")

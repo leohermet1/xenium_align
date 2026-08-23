@@ -24,12 +24,10 @@ website:
             href: index.qmd
       - section: "Tutorials"
         contents:
-          - text: "1. Image Registration"
+          - text: "1. Registration on toy dataset"
             href: analysis/01_registration.qmd
-          - text: "2. Cell Transformation"
+          - text: "2. Comparison between Xenium Explorer and sITK"
             href: analysis/02_transformation.qmd
-          - text: "5. Validation"
-            href: analysis/03_validation.qmd
 
 format:
   html:

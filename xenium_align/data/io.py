@@ -10,7 +10,6 @@ import pandas as pd
 import geopandas as gpd
 import shapely
 from shapely.geometry import Polygon, shape
-import orjson
 
 import anndata as ad
 import spatialdata as sd
@@ -46,7 +45,7 @@ def get_xenium_image_paths(xe_dir: Path | str) -> dict[str, Path]:
         Mapping of channel name → image path.
         Keys: ``"DAPI"``, ``"ATP1A"``, ``"18S"``.
     """
-    morphology_dir = Path(xe_dir) / "morphology_focus"
+    morphology_dir = (Path(xe_dir) / "morphology_focus").resolve(strict=True)
     
     # XOA v4.0+: ch0000_<name>.ome.tif
     paths = {
@@ -63,6 +62,54 @@ def get_xenium_image_paths(xe_dir: Path | str) -> dict[str, Path]:
         }
         
     return paths
+
+
+def choose_level_for_target_spacing(path, target_spacing_um=2.0):
+    """
+    Return the pyramid level with spacing closest to target_spacing_um.
+
+    Level index != physical resolution across files: native spacing depends
+    on the acquisition system, not the index (e.g. multi-IF scanner ~0.5
+    um/px vs Xenium morphology ~0.2 um/px, both IF). Fixing a level number
+    is therefore inconsistent across files; targeting spacing directly is not.
+
+    target_spacing_um=2.0: empirical middle ground. Coarser -> not enough
+    signal for SimpleITK to lock onto during registration. Finer -> larger
+    image, slower registration, no real gain in alignment quality.
+
+    Parameters
+    ----------
+    path : str or Path
+        Pyramidal OME-TIFF path.
+    target_spacing_um : float, default 2.0
+        Target resolution, microns/pixel.
+
+    Returns
+    -------
+    int
+        Closest-matching level index. Feed to `load_downsampled_image` as `level_index`.
+    """
+    with tifffile.TiffFile(path, is_ome=False) as tif:
+        levels = tif.series[0].levels
+        full_res = levels[0]
+        x_idx = full_res.axes.find('X')
+        meta_info = get_ome_metadata(path)
+
+        # Scan every level, keep the one closest to target_spacing_um
+        best_level, best_diff, best_spacing = 0, None, None
+        for i, lvl in enumerate(levels):
+            scale = full_res.shape[x_idx] / lvl.shape[x_idx]
+            spacing = meta_info['spacing_x'] * scale
+            diff = abs(spacing - target_spacing_um)
+            if best_diff is None or diff < best_diff:
+                best_diff, best_level, best_spacing = diff, i, spacing
+
+    logger.info(
+        f"{Path(path).name}: native spacing = {meta_info['spacing_x']:.4f} um/px, "
+        f"level {best_level} selected (spacing={best_spacing:.4f} um/px, target={target_spacing_um})"
+    )
+    return best_level
+
 
 def load_downsampled_image(path, level_index=3):
     """
@@ -84,12 +131,15 @@ def load_downsampled_image(path, level_index=3):
     # Original spacing from OME-XML
     meta_info = get_ome_metadata(path)
     # New spacing for spatial consistency
+    spacing_x = meta_info["spacing_x"] * scale_x
+    spacing_y = meta_info["spacing_y"] * scale_y
     meta = {
         "orig_spacing_x": meta_info["spacing_x"],
         "scale_x": scale_x,
         "orig_spacing_y": meta_info["spacing_y"],
         "scale_y": scale_y,
-        "spacing": (meta_info["spacing_x"] * scale_x, meta_info["spacing_y"] * scale_y)
+        "spacing": (spacing_x, spacing_y),
+        "extent": np.array([target_res.shape[x_idx] * spacing_x, target_res.shape[y_idx] * spacing_y]),
     }
     return lowres_array, meta
 
@@ -98,13 +148,33 @@ def get_ome_metadata(path):
     """Extract physical spacing, axes, and shape from OME-XML metadata."""
     with tifffile.TiffFile(path) as tif:
         ome = from_xml(tif.ome_metadata)
+        px = ome.images[0].pixels
+
+        # Missing spacing
+        if px.physical_size_x is None or px.physical_size_y is None:
+            logger.error(
+                f"{Path(path).name}: missing physical_size_x/y in OME metadata, spacing cannot be determined. "
+                f"Reference native spacing: 0.2125 um/px (Xenium), 0.3273 um/px (H&E), 0.4968 um/px (IF)."
+            )
+            raise ValueError(f"Missing pixel size metadata in {path}")
+
+        spacing_x = float(px.physical_size_x)
+        spacing_y = float(px.physical_size_y)
+
+        # flag when spacting = 1.0 (missing metadata)
+        if spacing_x == 1.0 or spacing_y == 1.0:
+            logger.warning(
+                f"{Path(path).name}: spacing = 1.0 um/px, likely uncalibrated metadata "
+                f"Reference native spacing: 0.2125 um/px (Xenium), 0.3273 um/px (H&E), 0.4968 um/px (IF)."
+            )
+
         return {
-            "spacing_x": float(ome.images[0].pixels.physical_size_x),
-            "spacing_y": float(ome.images[0].pixels.physical_size_y)
+            "spacing_x": spacing_x,
+            "spacing_y": spacing_y
         }
 
 
-def calculate_pyramidal_offset(path, meta_xe, level_idx = 3):
+def calculate_pyramidal_offset(path, meta_xe, level_index = 3):
     """
     Calculates the spatial offset between a pyramid level and the full-resolution image.
     
@@ -114,7 +184,7 @@ def calculate_pyramidal_offset(path, meta_xe, level_idx = 3):
     
     Args:
         path (str): Path to the TIFF file.
-        level_idx (int): The pyramid level to calibrate (e.g., 4 or 5).
+        level_index (int): The pyramid level to calibrate (e.g., 3).
         pixel_size_um (float): Resolution at Level 0 (default 0.2125 for Xenium).
         
     Returns:
@@ -123,14 +193,14 @@ def calculate_pyramidal_offset(path, meta_xe, level_idx = 3):
     with tifffile.TiffFile(path, is_ome=False) as tif:
         series = tif.series[0]
         l0 = series.levels[0]
-        ln = series.levels[level_idx]
+        ln = series.levels[level_index]
         
         # Get dimensions (handles C-style YX or CYX shapes)
         h0, w0 = l0.shape[-2:]
         hn, wn = ln.shape[-2:]
         
         # Theoretical downsampling scale (power of 2)
-        scale = 2**level_idx
+        scale = 2**level_index
         
         # Component 1: Geometric Padding (difference between theoretical and actual grid)
         pad_x_pixels = (wn * scale - w0) / 2
@@ -184,15 +254,17 @@ def uncompress_snappy_to_geojson(input_snappy, output_geojson):
 
 
 
-def load_gdf_pixel_to_microns(input_path, meta, index_col_name):
+def load_gdf_pixel_to_microns(input_path, meta):
     gdf = gpd.read_file(input_path)
+    gdf = _fix_geodataframe(gdf)
+    # Keep only detected nuclei (remove QuPath's ROI annotation from the segmentation run)
+    if 'objectType' in gdf.columns:
+        gdf = gdf[gdf['objectType'] == 'detection'].copy()
     spacing_x, spacing_y = meta['orig_spacing_x'], meta['orig_spacing_y']
     # Convert to microns
     gdf.geometry = gdf.geometry.scale(xfact=spacing_x, yfact=spacing_y, origin=(0,0))
     gdf.crs = None
-    # Preparation of indices: drop existing, reset, and rename
-    gdf = gdf.reset_index().rename(columns={'index': index_col_name})
-    
+
     return gdf
 
 
@@ -235,7 +307,7 @@ def _clean_geom(geom):
 def _load_snappy_as_gdf(path: Path, output_geojson: Path | None = None) -> gpd.GeoDataFrame:
     with open(path, 'rb') as f:
         decompressed_data = snappy.uncompress(f.read())
-    data_dict = orjson.loads(decompressed_data)
+    data_dict = json.loads(decompressed_data)
     gdf = gpd.GeoDataFrame.from_features(data_dict).explode(index_parts=False)
     gdf = _fix_geodataframe(gdf)
     gdf.index = pd.Index([f"cell_{i}" for i in range(len(gdf))], name="cell_id")
@@ -286,9 +358,9 @@ def export_xenium_to_pixel_geojson(
     """
     targets = []
     if export_cells:
-        targets.append(("cell_boundaries.parquet", "cells_xenium_fixed.geojson", "Cell"))
+        targets.append(("cell_boundaries.parquet", "cells_xenium.geojson", "Cell"))
     if export_nucleus:
-        targets.append(("nucleus_boundaries.parquet", "nucleus_xenium_fixed.geojson", "Nucleus"))
+        targets.append(("nucleus_boundaries.parquet", "nucleus_xenium.geojson", "Nucleus"))
         
     for filename, output_name, feature_class in targets:
         parquet_path = Path(xenium_dir) / filename
