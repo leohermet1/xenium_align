@@ -21,7 +21,7 @@ def prepare_he(image_rgb, signal = 99):
     array_he = rescale_intensity(hematoxylin, out_range=(0, 255))
     return array_he
 
-def prepare_if(image_data):
+def prepare_mif(image_data):
     # Normalize single channel intensity
     array_if = rescale_intensity(image_data, out_range=(0, 255))
 
@@ -40,7 +40,7 @@ def prepare_xe_generate_combination(channels_raw, reference_key="DAPI"):
     The combo that visually aligns the most with the Hematoxylin channel is 'DAPI_ATP1A'.
     """
     # Apply individual preprocessing to each raw channel
-    channels_proc = {k: prepare_if(v) for k, v in channels_raw.items()}
+    channels_proc = {k: prepare_mif(v) for k, v in channels_raw.items()}
     # Generate all possible combinations containing the reference key
     keys = list(channels_proc.keys())
     combos = {}

@@ -169,6 +169,7 @@ def apply_sitk_transform(
         oy=offset_y,
     )
     gdf_transformed = _fix_geodataframe(gdf_transformed)
+    gdf_transformed["objectType"] = "detection"
     gdf_transformed.to_file(output_path)
     logger.info(f"Transformed cells (sitk) exported to {output_path}")
 

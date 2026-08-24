@@ -184,3 +184,9 @@ COLON_IF_results/nucleus_xenium.geojson
 /COLON_HE_results
 /COLON_IF_results
 /toydataset_results
+toy_dataset/create_toydataset.py
+toy_dataset/IF_ROI.geojson
+toy_dataset/HE_ROI.geojson
+toy_dataset/XENIUM_ROI.geojson
+/toydataset_HE_results
+/toydataset_mIF_results

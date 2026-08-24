@@ -15,9 +15,10 @@ from .preprocess import (
     prepare_xe_generate_combination,
     combine_xenium_channels,
     flip_if_needed,
+    prepare_mif,
 )
 
-def load_images_and_metadata(
+def load_images_and_metadata_he(
     HE_IMG_PATH: Path,
     XE_DIR: Path,
     output_dir: Path,
@@ -94,4 +95,59 @@ def load_images_and_metadata(
         proc_target,
         combo_dir,
         combo_name,
+    )
+
+
+def load_images_and_metadata_mif(
+    IF_IMG_PATH: Path,
+    XE_DIR: Path,
+    target_spacing_um: float = 2,
+) -> Dict[str, Any]:
+    """
+    Loads and preprocesses source (mIF) and target (Xenium) images for alignment.
+    This function combines I/O and preprocessing steps to prepare images and metadata
+    required for registration and transformation.
+
+    Args:
+        IF_IMG_PATH (Path): Path to the mIF image file (e.g., OME-TIFF).
+        XE_DIR (Path): Path to the Xenium data directory.
+        output_dir (Path): Output directory for saving results.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - meta_source: Metadata for the source image.
+            - meta_target: Metadata for the target image.
+            - offset_x (int): X-offset for pyramid level.
+            - offset_y (int): Y-offset for pyramid level.
+            - proc_source: Processed source image.
+            - proc_target: Processed target image.
+    """
+    # --- SOURCE (H&E) ---
+    # Define the image resolution
+    level_idx = choose_level_for_target_spacing(IF_IMG_PATH, target_spacing_um=target_spacing_um)
+    # Load DAPI
+    raw_source, meta_source = load_downsampled_image(IF_IMG_PATH, level_index=level_idx)
+    proc_source = prepare_mif(raw_source[0])
+
+    # --- TARGET (Xenium) ---
+    # Get all Xenium image paths
+    XE_IMG_PATH = get_xenium_image_paths(XE_DIR)
+    # Define the image resolution
+    XE_IMG_PATH_DAPI = XE_IMG_PATH.pop("DAPI")
+    level_idx = choose_level_for_target_spacing(XE_IMG_PATH_DAPI, target_spacing_um=target_spacing_um)
+    ## Load DAPI
+    raw_target, meta_target = load_downsampled_image(XE_IMG_PATH_DAPI, level_index = level_idx)
+    offset_x, offset_y = calculate_pyramidal_offset(XE_IMG_PATH_DAPI, meta_target, level_index = level_idx)
+    proc_target = prepare_mif(raw_target)
+    # Rotate automatically the target image if needed
+    proc_target = flip_if_needed(proc_source, proc_target, meta_target, name="proc_target")
+
+    # Return all necessary data and metadata
+    return (
+        meta_source,
+        meta_target,
+        offset_x,
+        offset_y,
+        proc_source,
+        proc_target,
     )

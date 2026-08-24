@@ -37,7 +37,7 @@ In the [Validation] module, we provide tools to compare the composite transforma
 :::
 
 ### Installation
-You can create an environment using [mamba](https://mamba.readthedocs.io/) and install the package.
+You can create an environment using [mamba](https://mamba.readthedocs.io/).
 
 ```bash
 # Create the environment from environment.yml
@@ -50,14 +50,13 @@ mamba activate xenium_align
 
 ### Step-by-Step Pipeline
 
-* **[Data Preparation]**: Load and format images, cell boundaries (e.g., Xenium outputs).
+* **Data Preparation**: Load and format images, cell boundaries (e.g., Xenium outputs).
 
-* **[Image Registration]**: Automatic alignment using SimpleITK.
+* **Image Registration**: Automatic alignment using SimpleITK.
 
-* **[Transformation]**: Map spatial annotations (such as cell boundaries) into the target coordinate system.
+* **Transformation**: Map spatial annotations (such as cell boundaries) into the target coordinate system.
 
-* **[Validation]**:  Validate the result using IoU and distance error against ground truth segmentation.
+* **Validation**:  Validate the result using IoU and distance error against ground truth segmentation.
 
-### Exemple with a toydataset
+### [Exemple with a toydataset](analysis/01_ToyDataset.qmd)
 
-**(analysis/01_ToyDataset.qmd)**

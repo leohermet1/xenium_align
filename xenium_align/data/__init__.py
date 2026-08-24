@@ -1,3 +1,3 @@
 from .io import export_xenium_to_pixel_geojson, load_gdf_pixel_to_microns, get_xenium_image_paths
 from .preprocess import get_sitk_image
-from .data import load_images_and_metadata
+from .data import load_images_and_metadata_he, load_images_and_metadata_mif
