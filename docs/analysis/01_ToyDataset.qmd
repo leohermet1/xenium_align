@@ -8,6 +8,10 @@ format:
 jupyter: python3
 ---
 
+Here we align the Xenium slide with both the post-Xenium mIF and post-Xenium H&E images, since the same physical slide was imaged across all three technologies. 
+
+But each of these alignments can be run independently, if you have only one of the two post-Xenium images (H&E or mIF), simply run the corresponding section.
+
 ## Imports
 ```{python}
 from pathlib import Path
@@ -18,11 +22,7 @@ import os
 import xenium_align as xa
 ```
 
-Here we align the Xenium slide with both the post-Xenium mIF and post-Xenium H&E images, since the same physical slide was imaged across all three technologies. 
-
-But each of these alignments can be run independently, if you have only one of the two post-Xenium images (H&E or mIF), simply run the corresponding section
-
-# Xenium and post xenium mIF
+# Xenium and post-Xenium mIF
 ## Paths
 ```{python Load }
 # IF
@@ -38,7 +38,7 @@ output_dir_mif.mkdir(parents=True, exist_ok=True)
 ## Load images and metada
 To avoid long processing times, we load each image at a reduced resolution. Since the IF and Xenium images are acquired on different microscopes, they have different native pixel spacings (µm/px). Each image's resolution level is therefore selected automatically to match a common target resolution (2 µm/px by default), chosen as a trade-off between alignment accuracy and computing time.
 
-For both Xenium and post xenium mIF we exctract the DAPI channel.
+For both Xenium and post-Xenium mIF we exctract the DAPI channel.
 
 ```{python Load }
 meta_source, meta_target, offset_x, offset_y, proc_source, proc_target = xa.data.load_images_and_metadata_mif(IF_IMG_PATH, XE_DIR, target_spacing_um = 1)
@@ -92,7 +92,7 @@ Next, we can use spatial join to match cells between mIF and Xenium.
 
 ### From Xenium (target) to mIF (source)
 #### Nucleus coordinates
-We can also transform nucleus segmentation from Xenium to the post Xenium mIF slide (using the inverse transform).
+We can also transform nucleus segmentation from Xenium to the post-Xenium mIF slide (using the inverse transform).
 
 ```{python}
 xe_nucleus_geojson = Path("../toy_dataset/XENIUM_nucleus_coords.geojson")
@@ -100,13 +100,13 @@ xe_nucleus_geojson = Path("../toy_dataset/XENIUM_nucleus_coords.geojson")
 xa.module.apply_sitk_transform(xe_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y, inverse = True)
 ```
 
-And then check the alignment accuracy (how well the transformed nucleus segmentation match the DAPI signal of the post Xenium mIF slide) :
+And then check the alignment accuracy (how well the transformed nucleus segmentation match the DAPI signal of the post-Xenium mIF slide) :
 
-![Xenium nucleus segmentation transformed into the post Xenium mIF slide](../images/Xenium_nuc_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformedF" fig-align="center"}
+![Xenium nucleus segmentation transformed into the post-Xenium mIF slide](../images/Xenium_nuc_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformedF" fig-align="center"}
 
 **Note:** Since both post-Xenium H&E and mIF are available for this sample, the mIF panel is kept minimal : only one marker in addition to DAPI (Opal 520). So if you want to visualize the transformed nucleus of Xenium in the mIF slide with QuPath, show only the DAPI and Opal 520 channels.
 
-![QuPath Brightness & Contrast panel with only DAPI and Opal 520 enabled.](../images/QuPath_brightness_post_xenium_mIF.png){fig-alt="Channels to show with post xenium mIF" fig-align="center"}
+![QuPath Brightness & Contrast panel with only DAPI and Opal 520 enabled.](../images/QuPath_brightness_post_xenium_mIF.png){fig-alt="Channels to show with post-Xenium mIF" fig-align="center"}
 
 #### Cells coordinates
 In the same way, we can transform the cells segmented from the Xenium multimodal segmentation into the post-Xenium mIF space, in order to annotate the cells (instead of relying on classical nuclear expansion).
@@ -119,7 +119,7 @@ xa.module.apply_sitk_transform(xe_nucleus_geojson, output_dir_mif, meta_source, 
 
 Once transformed, the Xenium cell boundaries can be used to extract mIF signal directly. Since each cell keeps its original Xenium ID through the transformation, the mIF annotation can then be joined back onto the cells in their original Xenium coordinates with a simple join on cell ID.
 
-![Xenium cells segmentation transformed into the post Xenium mIF slide, Annotation : Neutrophiles (green) and Others (yellow)](../images/Xenium_cell_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium cell segmentation transformed" fig-align="center"}
+![Xenium cells segmentation transformed into the post-Xenium mIF slide, Annotation : Neutrophiles (green) and Others (yellow)](../images/Xenium_cell_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium cell segmentation transformed" fig-align="center"}
 
 On this example, annotation is done directly in QuPath. The transformed cell boundaries are imported as **detection** objects, which is required for per-cell measurements and thresholding in QuPath. Intensity features (mean, median, etc.) are then computed per channel on each cell's own ROI via `Analyze` -> `Calculate features` -> `Add intensity features...`. 
 
@@ -143,7 +143,7 @@ Cells are finally classified using QuPath's `Object classification` -> `Create s
 
 
 
-# Xenium and post xenium HES
+# Xenium and post-Xenium H&E
 ## Paths
 ```{python Load }
 # HE
@@ -228,10 +228,10 @@ he_nucleus_geojson = Path("../toy_dataset/HE_nucleus_coords.geojson")
 xa.module.apply_sitk_transform(he_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y)
 ```
 
-Next, we can use spatial join to match cells between mIF and Xenium.
+Next, we can use spatial join to match cells between HE and Xenium.
 
 ### From xenium (target) to HE (source)
-We can also transform nucleus segmentation from Xenium to the post Xenium mIF slide (using the inverse transform) to check the alignment accuracy :
+We can also transform nucleus segmentation from Xenium to the post-Xenium HE slide (using the inverse transform) to check the alignment accuracy :
 
 ```{python}
 xe_nucleus_geojson = Path("../toy_dataset/XENIUM_nucleus_coords.geojson")
@@ -239,7 +239,7 @@ xe_nucleus_geojson = Path("../toy_dataset/XENIUM_nucleus_coords.geojson")
 xa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y, inverse = True)
 ```
 
-![Xenium nucleus segmentation transformed into the post Xenium mIF slide](../images/Xenium_nuc_seg_transformed_to_HE_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformedF" fig-align="center"}
+![Xenium nucleus segmentation transformed into the post-Xenium HE slide](../images/Xenium_nuc_seg_transformed_to_HE_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformedF" fig-align="center"}
 
 
 
