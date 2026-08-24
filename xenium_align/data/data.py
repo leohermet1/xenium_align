@@ -21,6 +21,7 @@ def load_images_and_metadata(
     HE_IMG_PATH: Path,
     XE_DIR: Path,
     output_dir: Path,
+    target_spacing_um: float = 2,
     combo_name: str = "DAPI_ATP1A_18S",
 ) -> Dict[str, Any]:
     """
@@ -47,7 +48,7 @@ def load_images_and_metadata(
     """
     # --- SOURCE (H&E) ---
     # Define the image resolution
-    level_idx = choose_level_for_target_spacing(HE_IMG_PATH, target_spacing_um=2)
+    level_idx = choose_level_for_target_spacing(HE_IMG_PATH, target_spacing_um=target_spacing_um)
     # Load hematoxylin
     raw_source, meta_source = load_downsampled_image(HE_IMG_PATH, level_index=level_idx)
     proc_source = prepare_he(raw_source, signal=100)
@@ -57,7 +58,7 @@ def load_images_and_metadata(
     XE_IMG_PATH = get_xenium_image_paths(XE_DIR)
     # Define the image resolution for DAPI
     XE_IMG_PATH_DAPI = XE_IMG_PATH.pop("DAPI")
-    level_idx = choose_level_for_target_spacing(XE_IMG_PATH_DAPI, target_spacing_um=2)
+    level_idx = choose_level_for_target_spacing(XE_IMG_PATH_DAPI, target_spacing_um=target_spacing_um)
     # Load DAPI
     dapi, meta_target = load_downsampled_image(XE_IMG_PATH_DAPI, level_index=level_idx)
     # Initialize channels_raw with DAPI

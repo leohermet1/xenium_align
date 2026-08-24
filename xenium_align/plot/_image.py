@@ -2,7 +2,10 @@ import os
 import numpy as np
 import SimpleITK as sitk
 import matplotlib
-matplotlib.use('Agg')
+try:
+    get_ipython()  # existe seulement dans un contexte Jupyter/IPython
+except NameError:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from ._utils import boost_intensity
 
@@ -32,16 +35,16 @@ def registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir,
     rgb_final = create_rgb_composite(fixed, moving_bspline)
     
     # Create 1x3 diagnostic figure
-    fig, axes = plt.subplots(1, 3, figsize=(25, 10))
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     
     axes[0].imshow(rgb_initial)
-    axes[0].set_title("Initial")
+    axes[0].set_title("Initial", fontsize=10)
     
     axes[1].imshow(rgb_rigid)
-    axes[1].set_title("Rigid")
+    axes[1].set_title("Rigid", fontsize=10)
     
     axes[2].imshow(rgb_final)
-    axes[2].set_title("BSpline")
+    axes[2].set_title("BSpline", fontsize=10)
     
     # Finalize formatting and save
     for ax in axes: 
@@ -53,7 +56,7 @@ def registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir,
     else:
         output_path = os.path.join(combo_dir, f"registration_{mesh_size}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.close()
+    
 
 def single_overlay(fixed, moving, combo_dir, filename):
     """Generate and save a single RGB composite overlay from two images."""
@@ -71,4 +74,4 @@ def single_overlay(fixed, moving, combo_dir, filename):
     plt.axis('off')
     output_path = os.path.join(combo_dir, filename)
     plt.savefig(output_path, dpi=300, bbox_inches='tight', pad_inches=0)
-    plt.close()
+    

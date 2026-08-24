@@ -151,7 +151,7 @@ def apply_sitk_transform(
     gdf = _resolve_gdf(source, sdata_shapes_key=sdata_shapes_key)
     if inverse:
         output_path = os.path.join(combo_dir, f"transformed_inverse_{ms}.geojson")
-        print("Computing inverse transform field...")
+        logger.info("Computing inverse transform field...")
         composite_tx = _get_inverse_composite_transform_polygons(composite_tx_ori, meta_source)
         transform_func = sitk_inverse_transform
     else:

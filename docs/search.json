@@ -1,26 +1,98 @@
 [
   {
-    "objectID": "analysis/01_preprocessing.html",
-    "href": "analysis/01_preprocessing.html",
-    "title": "Data Preparation",
-    "section": "",
-    "text": "Introduction\nThis notebook document the loading and preprocess of OME-TIFF images for alignement.\n\n\nCode\nimport xenium_align as xa",
-    "crumbs": [
-      "Overview",
-      "Tutorials",
-      "1. Data Preparation"
-    ]
-  },
-  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "Xenium Alignment",
     "section": "",
-    "text": "This toolkit provides a pipeline for the automatic whole slide alignment between Xenium and post-Xenium spatial data (mIF, H&E).\n\nCore Objective\nThe goal is to bridges the gap between different imaging technologies by mapping annotated cell coordinates from one system to another.\nLeveraging SimpleITK, the registration process is based on correlation between image intensities in two complementary steps:\n\nRigid Transformation: Pre-alignment to correct for rotation and translation.\nLocal Deformation (B-Spline): Fine-tuning to account for non-linear differences between images.\n\n\n\n\n\n\n\nWorkflow\n\n\n\nThe alignment is image-based. Once the registration is finalized, the resulting composite transformation (Rigid + Non-rigid) is applied to spatial annotations (e.g. cell boundaries).\n\n\n\nWhy go beyond Xenium Explorer?\nImage Alignment in Xenium Explorer requires the user to manually define anchor points (landmarks) and relies on Affine transformations.\nIn contrast, this automated approach removes the manual constraints with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.\nAlso, as noted in the 10x Genomics Analysis Guide:\n\n“Realistically, two different microscope systems will use different FOV boundaries and different preprocessing… Correcting for lens distortion requires nonlinear transformation and is a fundamentally different problem from image registration.”\n\nBy using a B-Spline transformation, we compensate for the “optical distortion” mentioned by 10x Genomics, resolving local non-linearities that fall outside the scope of a global affine transformation.\n\n\n\nTranslation, Rotation (Rigid), Affine (Xenium Explorer Alignment), and Elastic (B-Spline).\n\n\n\n\n\n\n\n\nValidation & Comparison\n\n\n\nIn the Validation module, we provide tools to compare the composite transformation results against affine alignments, quantifying the gain in precision (IoU, distance error).\n\n\n\n\n\nStep-by-Step Pipeline\n\nData Preparation: Load and format images, cell boundaries (e.g., Xenium outputs).\nImage Registration: Automatic alignment using SimpleITK.\nTransformation: Map spatial annotations (such as cell boundaries) into the target coordinate system.\nValidation: Validate the result using IoU and distance error against ground truth segmentation.",
+    "text": "This toolkit provides a pipeline for the automatic whole slide alignment between Xenium and post-Xenium spatial data (mIF, H&E).\n\nCore Objective\nThe goal is to bridges the gap between different imaging technologies by mapping annotated cell coordinates from one system to another.\nLeveraging SimpleITK, the registration process is based on correlation between image intensities in two complementary steps:\n\nRigid Transformation: Pre-alignment to correct for rotation and translation.\nLocal Deformation (B-Spline): Fine-tuning to account for non-linear differences between images.\n\n\n\n\n\n\n\nWorkflow\n\n\n\nThe alignment is image-based. Once the registration is finalized, the resulting composite transformation (Rigid + Non-rigid) is applied to spatial annotations (e.g. cell boundaries).\n\n\n\nWhy go beyond Xenium Explorer?\nImage Alignment in Xenium Explorer requires the user to manually define anchor points (landmarks) and relies on Affine transformations.\nIn contrast, this automated approach removes the manual constraints with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.\nAlso, as noted in the 10x Genomics Analysis Guide:\n\n“Realistically, two different microscope systems will use different FOV boundaries and different preprocessing… Correcting for lens distortion requires nonlinear transformation and is a fundamentally different problem from image registration.”\n\nBy using a B-Spline transformation, we compensate for the “optical distortion” mentioned by 10x Genomics, resolving local non-linearities that fall outside the scope of a global affine transformation.\n\n\n\nTranslation, Rotation (Rigid), Affine (Xenium Explorer Alignment), and Elastic (B-Spline).\n\n\n\n\n\n\n\n\nValidation & Comparison\n\n\n\nIn the [Validation] module, we provide tools to compare the composite transformation results against affine alignments, quantifying the gain in precision (IoU, distance error).\n\n\n\n\n\nInstallation\nYou can create an environment using mamba and install the package.\n# Create the environment from environment.yml\nmamba env create -f environment.yml\n# Activate it\nmamba activate xenium_align\n\n\nStep-by-Step Pipeline\n\n[Data Preparation]: Load and format images, cell boundaries (e.g., Xenium outputs).\n[Image Registration]: Automatic alignment using SimpleITK.\n[Transformation]: Map spatial annotations (such as cell boundaries) into the target coordinate system.\n[Validation]: Validate the result using IoU and distance error against ground truth segmentation.\n\n\n\nExemple with a toydataset\n(analysis/01_ToyDataset.qmd)",
     "crumbs": [
       "Overview",
       "Documentation",
       "Toolkit Overview"
+    ]
+  },
+  {
+    "objectID": "analysis/01_ToyDataset.html",
+    "href": "analysis/01_ToyDataset.html",
+    "title": "1. Registration on toy dataset",
+    "section": "",
+    "text": "Code\nfrom pathlib import Path\nimport matplotlib.pyplot as plt\nimport spatialdata_io\nimport os\n\nimport xenium_align as xa",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Registration on toy dataset"
+    ]
+  },
+  {
+    "objectID": "analysis/01_ToyDataset.html#imports",
+    "href": "analysis/01_ToyDataset.html#imports",
+    "title": "1. Registration on toy dataset",
+    "section": "",
+    "text": "Code\nfrom pathlib import Path\nimport matplotlib.pyplot as plt\nimport spatialdata_io\nimport os\n\nimport xenium_align as xa",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Registration on toy dataset"
+    ]
+  },
+  {
+    "objectID": "analysis/01_ToyDataset.html#paths",
+    "href": "analysis/01_ToyDataset.html#paths",
+    "title": "1. Registration on toy dataset",
+    "section": "Paths",
+    "text": "Paths\n\n\nCode\n# HE\nHE_IMG_PATH = Path(\"../toy_dataset/HE.ome.tif\")\n# XENIUM\nXE_DIR = Path(\"../toy_dataset/XENIUM/\")\nXE_IMG_PATH = xa.data.get_xenium_image_paths(XE_DIR)\n# Output directory\noutput_dir = Path(\"../toydataset_results\")\noutput_dir.mkdir(parents=True, exist_ok=True)",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Registration on toy dataset"
+    ]
+  },
+  {
+    "objectID": "analysis/01_ToyDataset.html#load-images-and-metada",
+    "href": "analysis/01_ToyDataset.html#load-images-and-metada",
+    "title": "1. Registration on toy dataset",
+    "section": "Load images and metada",
+    "text": "Load images and metada\nTo avoid long processing times, we load each image at a reduced resolution. Since the H&E and Xenium images are acquired on different microscopes, they have different native pixel spacings (µm/px). Each image’s resolution level is therefore selected automatically to match a common target resolution (2 µm/px by default), chosen as a trade-off between alignment accuracy and computing time.\nFor HE/HES images, we extract only the hematoxylin channel using separate_stains from skimage.color. This single-channel nuclear signal is more directly comparable to the DAPI/nuclear channel of the Xenium IF image, which improves registration between the two modalities.\nHowever, this hematoxylin channel is not a pure nuclear signal: color deconvolution is not perfectly specific to this stain combination (HED matrix), so some signal from other channels leaks into it. To better match this broader signal, we therefore combine multiple Xenium IF channels : DAPI, ATP1A1, and 18S (rather than DAPI alone).\nYou can also use DAPI alone, or any combination of two channels, if preferred, each combination is automatically saved to its own output folder named after the channels used.\nFor this toy dataset, since the images to align are smaller, we use a finer target resolution (1 µm/px). We also use only the DAPI and ATP1A channels of the Xenium IF here, as this combination gives better alignment results at this scale.\n\n\nCode\nmeta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name = xa.data.load_images_and_metadata(HE_IMG_PATH, XE_DIR, output_dir, target_spacing_um = 1, combo_name = \"DAPI_ATP1A\")\n\n\n[INFO] (xenium_align.data.io) HE.ome.tif: native spacing = 0.3273 um/px, level 2 selected (spacing=1.3092 um/px, target=1)\n[INFO] (xenium_align.data.io) Loading HE.ome.tif...\n[INFO] (xenium_align.data.io) Level 2:  - Shape: (480, 669, 3) (YXS)\n[INFO] (xenium_align.data.io) ch0000_dapi.ome.tif: native spacing = 0.2125 um/px, level 2 selected (spacing=0.8498 um/px, target=1)\n[INFO] (xenium_align.data.io) Loading ch0000_dapi.ome.tif...\n[INFO] (xenium_align.data.io) Level 2:  - Shape: (751, 987) (YX)\n[INFO] (xenium_align.data.io) Loading ch0001_atp1a1_cd45_e-cadherin.ome.tif...\n[INFO] (xenium_align.data.io) Level 2:  - Shape: (751, 987) (YX)\n[INFO] (xenium_align.data.io) Loading ch0002_18s.ome.tif...\n[INFO] (xenium_align.data.io) Level 2:  - Shape: (751, 987) (YX)\n[INFO] (xenium_align.data.preprocess) Combine ['DAPI', 'ATP1A']...",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Registration on toy dataset"
+    ]
+  },
+  {
+    "objectID": "analysis/01_ToyDataset.html#visualize-images",
+    "href": "analysis/01_ToyDataset.html#visualize-images",
+    "title": "1. Registration on toy dataset",
+    "section": "Visualize images",
+    "text": "Visualize images\nThis helps assess how similar the two images are before running the registration.\n\n\nCode\nplt.figure(figsize=(15, 15))\nplt.imshow(proc_source)\nplt.axis('off')\nplt.savefig(f'{combo_dir}/proc_source.png', bbox_inches='tight', pad_inches=0)\nplt.close()\n\nplt.figure(figsize=(15, 15))\nplt.imshow(proc_target)\nplt.axis('off')\nplt.savefig(f'{combo_dir}/proc_target.png', bbox_inches='tight', pad_inches=0)\nplt.close()\n\nfig, axes = plt.subplots(1, 2, figsize=(10, 5))\naxes[0].imshow(proc_source)\naxes[0].axis('off')\naxes[0].set_title('Source (HES)', fontsize=10)\naxes[1].imshow(proc_target)\naxes[1].axis('off')\naxes[1].set_title('Target (Xenium)', fontsize=10)\nplt.tight_layout()",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Registration on toy dataset"
+    ]
+  },
+  {
+    "objectID": "analysis/01_ToyDataset.html#registration",
+    "href": "analysis/01_ToyDataset.html#registration",
+    "title": "1. Registration on toy dataset",
+    "section": "Registration",
+    "text": "Registration\n\n\nCode\n# Deformation resolution\nms = 5\n# Load source and target images\nfixed = xa.data.get_sitk_image(proc_source, meta_source)\nmoving = xa.data.get_sitk_image(proc_target, meta_target)\n# Run registration\nmoving_rigid, tx_rigid, moving_bspline, tx_bspline = xa.module.run_registration(fixed, moving, combo_dir, ms)\n# Visualize results\nxa.plot.registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir, ms)\nxa.plot.local_deformations(fixed, tx_bspline, combo_dir, ms)\n\n\n[INFO] (xenium_align.module.registration) Running rigid registration...\n[INFO] (xenium_align.module.registration) Running bspline registration...",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Registration on toy dataset"
+    ]
+  },
+  {
+    "objectID": "analysis/01_ToyDataset.html#sitk-transform",
+    "href": "analysis/01_ToyDataset.html#sitk-transform",
+    "title": "1. Registration on toy dataset",
+    "section": "sITK Transform",
+    "text": "sITK Transform\nNOTE: The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename). However, the “Load images and metadata” section must be executed first to ensure metadata (e.g., meta_source, meta_target, offset_x, offset_y, combo_dir) are available. You also need to specify ms, matching the mesh size of the registration run you want to use.\n\n\nCode\n# From HE (source) to xenium (target)\nhe_nucleus_geojson = Path(\"../toy_dataset/HE_nucleus_coords.geojson\")\nxa.module.apply_sitk_transform(he_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y)\n\n# From xenium (target) to HE (source)\n## Transform coordinates\nxe_nucleus_geojson = Path(\"../toy_dataset/XENIUM_nucleus_coords.geojson\")\nxa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y, inverse = True)\n\n\n[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_results/DAPI_ATP1A/transformed_5.geojson\n[INFO] (xenium_align.module.transform) Computing inverse transform field...\n[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_results/DAPI_ATP1A/transformed_inverse_5.geojson",
+    "crumbs": [
+      "Overview",
+      "Tutorials",
+      "1. Registration on toy dataset"
     ]
   }
 ]

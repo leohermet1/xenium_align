@@ -1,6 +1,15 @@
 project:
   type: website
   output-dir: "."
+  execute-dir: project
+  render:
+    - "**/*.qmd"
+    - "!analysis/Registration_whole_slide.qmd"
+    - "!analysis/Registration_whole_slide_test.qmd"
+    - "!analysis/02_transformation.qmd"
+    - "!analysis/03_validation.qmd"
+    - "!analysis/Col_registration.qmd"
+    - "!analysis/Sarc_registration.qmd"
   resources:
     - images/
 
@@ -26,8 +35,7 @@ website:
         contents:
           - text: "1. Registration on toy dataset"
             href: analysis/01_ToyDataset.qmd
-          - text: "2. Comparison between Xenium Explorer and sITK"
-            href: analysis/Registration_whole_slide.qmd
+          #- text: "2. Comparison between Xenium Explorer and sITK"
 
 format:
   html:

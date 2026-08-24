@@ -1,5 +1,8 @@
 import matplotlib
-matplotlib.use('Agg')
+try:
+    get_ipython()  # existe seulement dans un contexte Jupyter/IPython
+except NameError:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import geopandas as gpd
 
