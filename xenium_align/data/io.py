@@ -146,28 +146,55 @@ def load_downsampled_image(path, level_index=3):
 
 def get_ome_metadata(path):
     """Extract physical spacing, axes, and shape from OME-XML metadata."""
+    FALLBACK_SPACINGS = {
+        "xenium": 0.2125,
+        "he": 0.3273,
+        "mif": 0.4968,
+    }
+    
     with tifffile.TiffFile(path) as tif:
         ome = from_xml(tif.ome_metadata)
         px = ome.images[0].pixels
 
         # Missing spacing
         if px.physical_size_x is None or px.physical_size_y is None:
+            ref_spacings = ", ".join(f"{v} um/px ({k})" for k, v in FALLBACK_SPACINGS.items())
             logger.error(
                 f"{Path(path).name}: missing physical_size_x/y in OME metadata, spacing cannot be determined. "
-                f"Reference native spacing: 0.2125 um/px (Xenium), 0.3273 um/px (H&E), 0.4968 um/px (IF)."
+                f"Reference native spacing: {ref_spacings}."
             )
-            raise ValueError(f"Missing pixel size metadata in {path}")
 
-        spacing_x = float(px.physical_size_x)
-        spacing_y = float(px.physical_size_y)
+            try:
+                choice = input("Missing spacing — enter which one to use (xenium / he / mif): ").strip().lower()
+            except EOFError:
+                choice = ""
+            
+            if choice in FALLBACK_SPACINGS:
+                spacing_x = spacing_y = FALLBACK_SPACINGS[choice]
+                logger.warning(f"{Path(path).name}: using fallback spacing {spacing_x} um/px ({choice}).")
+            else:
+                raise ValueError(f"Missing pixel size metadata in {path}")
+        else:
+            spacing_x = float(px.physical_size_x)
+            spacing_y = float(px.physical_size_y)
 
         # flag when spacting = 1.0 (missing metadata)
         if spacing_x == 1.0 or spacing_y == 1.0:
+            ref_spacings = ", ".join(f"{v} um/px ({k})" for k, v in FALLBACK_SPACINGS.items())
             logger.warning(
-                f"{Path(path).name}: spacing = 1.0 um/px, likely uncalibrated metadata "
-                f"Reference native spacing: 0.2125 um/px (Xenium), 0.3273 um/px (H&E), 0.4968 um/px (IF)."
+                f"{Path(path).name}: spacing = 1.0 um/px, likely uncalibrated metadata. "
+                f"Reference native spacing: {ref_spacings}."
             )
 
+            try:
+                choice = input("Uncalibrated spacing (1.0) — enter which one to use, or leave empty to keep 1.0 (xenium / he / mif): ").strip().lower()
+            except EOFError:
+                choice = ""
+            
+            if choice in FALLBACK_SPACINGS:
+                spacing_x = spacing_y = FALLBACK_SPACINGS[choice]
+                logger.warning(f"{Path(path).name}: using fallback spacing {spacing_x} um/px ({choice}).")
+        
         return {
             "spacing_x": spacing_x,
             "spacing_y": spacing_y

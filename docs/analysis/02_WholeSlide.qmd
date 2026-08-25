@@ -27,6 +27,35 @@ Here we align the Xenium slide with both the post-Xenium mIF and post-Xenium H&E
 
 But each of these alignments can be run independently, if you have only one of the two post-Xenium images (H&E or mIF), simply run the corresponding section.
 
+::: {.callout-warning}
+Before running an alignment, the mIF and/or H&E slide must be provided as `ome.tif` and correspond to a **single sample**. 
+
+Indeed, sITK alignment can only be performed between two single-sample images because it relies on global image correlation between the two images being aligned. With multiple samples in the frame, the registration has no way of knowing which sample should match which, and the optimization can converge on a global alignment that doesn't correctly register any single sample.
+
+The Xenium output is typically an `ome.tif` already cropped to a single sample. However, if the original slide contains multiple samples (e.g., two on the same slide), the corresponding H&E and mIF images are likely to share that layout, in which case they need to be cropped to that same single sample for the alignment to be correct.
+
+This per-sample `ome.tif` export can be done in QuPath by defining a squared ROI / annotation around the sample:
+
+![ROI sample for HE images](../images/ROI_sample.png){fig-alt="ROI sample for HE" fig-align="center"}
+
+You can export the annotation via `File` → `Export objects as GeoJSON...`, then export the corresponding cropped image via `File` → `Export images...` → `OME-TIFF...`, using:
+
+- Compression: Default (lossless or lossy)
+- Pyramidal downsample: 2.0
+- Tile size: e.g. 1024 or 2048 px
+
+![Export OME-TIFF parameters](../images/Export_ometif.png){fig-alt="Export OME-TIFF parameters" fig-align="center"}
+
+If segmentation, annotation, or downstream analyses were already performed on the full slide (with more than one sample), there's no need to redo them to match the alignment: simply filter the cells falling within the `ROI` and subtract its top-left corner from their coordinates, so they match the cropped image's coordinate system.
+
+Also pay attention to pixel vs. micron units, you can convert between them using each modality's native spacing, available as metadata in the images:
+```python
+"xenium": 0.2125,
+"he": 0.3273,
+"mif": 0.4968,
+```
+:::
+
 # Xenium and post-Xenium mIF
 ## Paths
 ```{python Load }
@@ -121,6 +150,10 @@ To validate the alignment, we compare the transformed Xenium cell segmentation a
 We first visualize IoGT spatially across cells, then compare the distribution of IoGT and centroid distance error between the sITK (Rigid + Bspline) and Xeniume Explorer (Affine) transformations.
 
 Note that this metric is highly sensitive to the quality and consistency of both segmentations being compared. Here, the mIF segmentation is approximate, and any region where cells are missing in one slide but not the other will bias the score. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs. Xenium Explorer) on the same segmentation inputs.
+
+::: {.callout-warning}
+If alignment via Xenium Explorer was performed on the full slide (with more than one sample), it cannot be directly compared to the sITK alignment. To make them comparable, first apply the Xenium Explorer transform to the cell coordinates in the full-slide coordinate system, then filter to the cells falling within the `ROI` (saved previously as `.geojson`), and subtract its top-left corner from their coordinates, this brings them into the same coordinate system as the cropped image used for sITK alignment.
+:::
 
 ```{python}
 # Metrics
@@ -243,11 +276,15 @@ xa.module.apply_affine_transform(xe_nucleus_geojson, combo_dir, MATRIX_PATH, inv
 ```
 
 # Validation
-To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth H&E segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell's area recovered by the corresponding transformed cell). 
+To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth H&E segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell's area recovered by the corresponding transformed cell).
 
 We first visualize IoGT spatially across cells, then compare the distribution of IoGT and centroid distance error between the sITK (Rigid + Bspline) and Xeniume Explorer (Affine) transformations.
 
 Note that this metric is highly sensitive to the quality and consistency of both segmentations being compared. Here, the H&E segmentation is approximate, and any region where cells are missing in one slide but not the other will bias the score. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs. Xenium Explorer) on the same segmentation inputs.
+
+::: {.callout-warning}
+If alignment via Xenium Explorer was performed on the full slide (with more than one sample), it cannot be directly compared to the sITK alignment. To make them comparable, first apply the Xenium Explorer transform to the cell coordinates in the full-slide coordinate system, then filter to the cells falling within the `ROI` (saved previously as `.geojson`), and subtract its top-left corner from their coordinates, this brings them into the same coordinate system as the cropped image used for sITK alignment.
+:::
 
 ```{python}
 ## Ground thruth

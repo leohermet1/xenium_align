@@ -12,6 +12,12 @@ This notebook walks through the full alignment pipeline on a small region of int
 
 Note that a few parameters differ slightly from the whole-slide notebook (spacing, channel combination for the H&E–Xenium alignment), as they were chosen to work best at this smaller scale.
 
+::: {.callout-note}
+Comparison between sITK and Xenium Explorer alignment is not run on this toy dataset: to our knowledge, it is not possible to generate a Xenium output from a ROI alone (Xenium Explorer alignment requires a full Xenium experiment output), so alignment via Xenium Explorer cannot be performed directly on the ROI. 
+
+It would therefore require comparing an alignment performed on the full slide (via Xenium Explorer) against one performed on a single-sample ROI (via sITK). These two alignments are not directly comparable, since aligning a full slide is inherently less precise than aligning a tile of the full slide.
+:::
+
 ## Imports
 ```{python}
 import xenium_align as xa
@@ -48,6 +54,18 @@ For both Xenium and post-Xenium mIF we exctract the DAPI channel.
 ```{python Load }
 meta_source, meta_target, offset_x, offset_y, proc_source, proc_target = xa.data.load_images_and_metadata_mif(IF_IMG_PATH, XE_DIR, target_spacing_um = 1)
 ```
+
+::: {.callout-note}
+At this step, the target image orientation is automatically checked against the source: if a 180° flip
+gives a better correlation, the target is flipped and this is recorded in its metadata
+(reused later to remap segmented cell coordinates).
+
+This acts as a pre-(pre-)alignment step, performed before the rigid (pre-alignment) and bspline
+registration. Since rigid/bspline registration relies on local optimization, it can only
+converge if the images start reasonably close to their final orientation, it would not
+recover from a 180° mismatch on its own. Correcting the flip here ensures both images are
+roughly co-oriented before the finer alignment steps take over.
+:::
 
 ## Visualize images
 This helps assess how similar the two images are before running the registration.
@@ -109,7 +127,7 @@ xa.module.apply_sitk_transform(xe_nucleus_geojson, output_dir_mif, meta_source, 
 
 And then check the alignment accuracy (how well the transformed nucleus segmentation match the DAPI signal of the post-Xenium mIF slide) :
 
-![Xenium nucleus segmentation transformed into the post-Xenium mIF slide](../images/Xenium_nuc_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformedF" fig-align="center"}
+![Xenium nucleus segmentation transformed into the post-Xenium mIF slide](../images/Xenium_nuc_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformed mIF" fig-align="center"}
 
 **Note:** Since both post-Xenium H&E and mIF are available for this sample, the mIF panel is kept minimal : only one marker in addition to DAPI (Opal 520). So if you want to visualize the transformed nucleus of Xenium in the mIF slide with QuPath, show only the DAPI and Opal 520 channels.
 
@@ -181,6 +199,18 @@ For this toy dataset, since the images to align are smaller, we use a finer targ
 meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name = xa.data.load_images_and_metadata_he(HE_IMG_PATH, XE_DIR, output_dir_he, target_spacing_um = 1, combo_name = "DAPI_ATP1A")
 ```
 
+::: {.callout-note}
+At this step, the target image orientation is automatically checked against the source: if a 180° flip
+gives a better correlation, the target is flipped and this is recorded in its metadata
+(reused later to remap segmented cell coordinates).
+
+This acts as a pre-(pre-)alignment step, performed before the rigid (pre-alignment) and bspline
+registration. Since rigid/bspline registration relies on local optimization, it can only
+converge if the images start reasonably close to their final orientation, it would not
+recover from a 180° mismatch on its own. Correcting the flip here ensures both images are
+roughly co-oriented before the finer alignment steps take over.
+:::
+
 ## Visualize images
 This helps assess how similar the two images are before running the registration.
 
@@ -239,7 +269,7 @@ xe_nucleus_geojson = Path("../toy_dataset/XENIUM_nucleus_coords.geojson")
 xa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y, inverse = True)
 ```
 
-![Xenium nucleus segmentation transformed into the post-Xenium HE slide](../images/Xenium_nuc_seg_transformed_to_HE_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformedF" fig-align="center"}
+![Xenium nucleus segmentation transformed into the post-Xenium HE slide](../images/Xenium_nuc_seg_transformed_to_HE_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformed HE" fig-align="center"}
 
 
 

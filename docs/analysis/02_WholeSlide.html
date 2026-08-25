@@ -275,7 +275,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>It also includes a validation section, comparing the resulting alignment to Xenium Explorer’s manual registration, showing comparable accuracy.</p>
 <section id="imports" class="level2">
 <h2 class="anchored" data-anchor-id="imports">Imports</h2>
-<div id="81595211" class="cell" data-execution_count="1">
+<div id="8b9e5bbf" class="cell" data-execution_count="1">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> xenium_align <span class="im">as</span> xa</span>
@@ -287,67 +287,106 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Here we align the Xenium slide with both the post-Xenium mIF and post-Xenium H&amp;E images, since the same physical slide was imaged across all three technologies.</p>
 <p>But each of these alignments can be run independently, if you have only one of the two post-Xenium images (H&amp;E or mIF), simply run the corresponding section.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Before running an alignment, the mIF and/or H&amp;E slide must be provided as <code>ome.tif</code> and correspond to a <strong>single sample</strong>.</p>
+<p>Indeed, sITK alignment can only be performed between two single-sample images because it relies on global image correlation between the two images being aligned. With multiple samples in the frame, the registration has no way of knowing which sample should match which, and the optimization can converge on a global alignment that doesn’t correctly register any single sample.</p>
+<p>The Xenium output is typically an <code>ome.tif</code> already cropped to a single sample. However, if the original slide contains multiple samples (e.g., two on the same slide), the corresponding H&amp;E and mIF images are likely to share that layout, in which case they need to be cropped to that same single sample for the alignment to be correct.</p>
+<p>This per-sample <code>ome.tif</code> export can be done in QuPath by defining a squared ROI / annotation around the sample:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../images/ROI_sample.png" class="img-fluid figure-img" alt="ROI sample for HE"></p>
+<figcaption>ROI sample for HE images</figcaption>
+</figure>
+</div>
+<p>You can export the annotation via <code>File</code> → <code>Export objects as GeoJSON...</code>, then export the corresponding cropped image via <code>File</code> → <code>Export images...</code> → <code>OME-TIFF...</code>, using:</p>
+<ul>
+<li>Compression: Default (lossless or lossy)</li>
+<li>Pyramidal downsample: 2.0</li>
+<li>Tile size: e.g.&nbsp;1024 or 2048 px</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../images/Export_ometif.png" class="img-fluid figure-img" alt="Export OME-TIFF parameters"></p>
+<figcaption>Export OME-TIFF parameters</figcaption>
+</figure>
+</div>
+<p>If segmentation, annotation, or downstream analyses were already performed on the full slide (with more than one sample), there’s no need to redo them to match the alignment: simply filter the cells falling within the <code>ROI</code> and subtract its top-left corner from their coordinates, so they match the cropped image’s coordinate system.</p>
+<p>Also pay attention to pixel vs.&nbsp;micron units, you can convert between them using each modality’s native spacing, available as metadata in the images:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">"xenium"</span>: <span class="fl">0.2125</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">"he"</span>: <span class="fl">0.3273</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">"mif"</span>: <span class="fl">0.4968</span>,</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
 </section>
 <section id="xenium-and-post-xenium-mif" class="level1">
 <h1>Xenium and post-Xenium mIF</h1>
 <section id="paths" class="level2">
 <h2 class="anchored" data-anchor-id="paths">Paths</h2>
-<div id="df30ffd6" class="cell" data-execution_count="2">
+<div id="0f5c1b62" class="cell" data-execution_count="2">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># mIF</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>IF_IMG_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4.ome.tif"</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># XENIUM</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>XE_DIR <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/xenium/"</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>XE_IMG_PATH <span class="op">=</span> xa.data.get_xenium_image_paths(XE_DIR)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Output directory</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>output_dir_mif <span class="op">=</span> Path(<span class="st">"./COLON_IF_results"</span>)</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>output_dir_mif.mkdir(parents<span class="op">=</span><span class="va">True</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># mIF</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>IF_IMG_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4.ome.tif"</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># XENIUM</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>XE_DIR <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/xenium/"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>XE_IMG_PATH <span class="op">=</span> xa.data.get_xenium_image_paths(XE_DIR)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Output directory</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>output_dir_mif <span class="op">=</span> Path(<span class="st">"./COLON_IF_results"</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>output_dir_mif.mkdir(parents<span class="op">=</span><span class="va">True</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
 <section id="load-images-and-metadata" class="level2">
 <h2 class="anchored" data-anchor-id="load-images-and-metadata">Load images and metadata</h2>
-<div id="1c9a1eb4" class="cell" data-execution_count="3">
+<div id="0735c266" class="cell" data-execution_count="3">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>meta_source, meta_target, offset_x, offset_y, proc_source, proc_target <span class="op">=</span> xa.data.load_images_and_metadata_mif(IF_IMG_PATH, XE_DIR)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>meta_source, meta_target, offset_x, offset_y, proc_source, proc_target <span class="op">=</span> xa.data.load_images_and_metadata_mif(IF_IMG_PATH, XE_DIR)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
 <section id="visualize-images" class="level2">
 <h2 class="anchored" data-anchor-id="visualize-images">Visualize images</h2>
 <p>This helps assess how similar the two images are before running the registration.</p>
-<div id="6e9b1ab9" class="cell" data-execution_count="4">
+<div id="5114b118" class="cell" data-execution_count="4">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].imshow(proc_source)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].axis(<span class="st">'off'</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Source (mIF)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].imshow(proc_target)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].axis(<span class="st">'off'</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Target (Xenium)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f'</span><span class="sc">{</span>output_dir_mif<span class="sc">}</span><span class="ss">/processed_images.png'</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>, pad_inches<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].imshow(proc_source)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].axis(<span class="st">'off'</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Source (mIF)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].imshow(proc_target)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].axis(<span class="st">'off'</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Target (Xenium)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f'</span><span class="sc">{</span>output_dir_mif<span class="sc">}</span><span class="ss">/processed_images.png'</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>, pad_inches<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
 <section id="registration" class="level2">
 <h2 class="anchored" data-anchor-id="registration">Registration</h2>
-<div id="801721f4" class="cell" data-execution_count="5">
+<div id="2d9379f4" class="cell" data-execution_count="5">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Deformation resolution</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>ms <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Load source and target images</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fixed <span class="op">=</span> xa.data.get_sitk_image(proc_source, meta_source)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>moving <span class="op">=</span> xa.data.get_sitk_image(proc_target, meta_target)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Run registration</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>moving_rigid, tx_rigid, moving_bspline, tx_bspline <span class="op">=</span> xa.module.run_registration(fixed, moving, output_dir_mif, ms)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize results</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>xa.plot.registration_summary(fixed, moving, moving_rigid, moving_bspline, output_dir_mif, ms)</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>xa.plot.local_deformations(fixed, tx_bspline, output_dir_mif, ms)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Deformation resolution</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>ms <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Load source and target images</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>fixed <span class="op">=</span> xa.data.get_sitk_image(proc_source, meta_source)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>moving <span class="op">=</span> xa.data.get_sitk_image(proc_target, meta_target)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Run registration</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>moving_rigid, tx_rigid, moving_bspline, tx_bspline <span class="op">=</span> xa.module.run_registration(fixed, moving, output_dir_mif, ms)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize results</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>xa.plot.registration_summary(fixed, moving, moving_rigid, moving_bspline, output_dir_mif, ms)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>xa.plot.local_deformations(fixed, tx_bspline, output_dir_mif, ms)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -358,12 +397,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="from-mif-source-to-xenium-target">From mIF (source) to Xenium (target)</h3>
 <p>We can transform the segmentation of mIF to the Xenium slide.</p>
 <p>Here we did the segmentation using <code>Positive cell detection</code> in QuPath on DAPI mean and with a treshold at 17 (0µm cell expansion). Segmentation can be improved using other tools.</p>
-<div id="02873c68" class="cell" data-execution_count="6">
+<div id="96d73827" class="cell" data-execution_count="6">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>if_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4_segmentation.geojson"</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform coordinates</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(if_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>if_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4_segmentation.geojson"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform coordinates</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(if_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -371,19 +410,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="from-xenium-target-to-mif-source">From xenium (target) to mIF (source)</h3>
 <p>We export the Xenium nucleus and cell segmentation (or only one of the two using <code>export_nucleus</code> / <code>export_cells</code> flags) to <code>.geojson</code> directly from the raw Xenium output (originally in microns), converting coordinates to pixels.</p>
 <p>Pixel coordinates allow the result to be opened directly in QuPath and compared alongside other annotations / segmentations, each cell remains traceable back to its original Xenium cell ID despite the unit change.</p>
-<div id="6d8d81af" class="cell" data-execution_count="7">
+<div id="0113dbcb" class="cell" data-execution_count="7">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Get xenium nucleus and cells segmentation as .geojson in the output_dir</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>xa.data.export_xenium_to_pixel_geojson(XE_DIR, meta_target, output_dir_mif)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Get xenium nucleus and cells segmentation as .geojson in the output_dir</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>xa.data.export_xenium_to_pixel_geojson(XE_DIR, meta_target, output_dir_mif)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="7223eb09" class="cell" data-execution_count="8">
+<div id="fc077648" class="cell" data-execution_count="8">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>xe_nucleus_geojson <span class="op">=</span> Path(output_dir_mif, <span class="st">"nucleus_xenium.geojson"</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform coordinates</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(xe_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>xe_nucleus_geojson <span class="op">=</span> Path(output_dir_mif, <span class="st">"nucleus_xenium.geojson"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform coordinates</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(xe_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -392,13 +431,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="transform-with-xenium-explorer-affine">Transform with Xenium Explorer (Affine)</h2>
 <section id="from-xenium-target-to-mif-source-1" class="level3">
 <h3 class="anchored" data-anchor-id="from-xenium-target-to-mif-source-1">From xenium (target) to mIF (source)</h3>
-<div id="d3893012" class="cell" data-execution_count="9">
+<div id="76b64a7c" class="cell" data-execution_count="9">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Alignement file from xenium explorer</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>MATRIX_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4_alignment_files/matrix.csv"</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform coordinates</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>xa.module.apply_affine_transform(xe_nucleus_geojson, output_dir_mif, MATRIX_PATH, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Alignement file from xenium explorer</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>MATRIX_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4_alignment_files/matrix.csv"</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform coordinates</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>xa.module.apply_affine_transform(xe_nucleus_geojson, output_dir_mif, MATRIX_PATH, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -408,34 +447,47 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth mIF segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell’s area recovered by the corresponding transformed cell).</p>
 <p>We first visualize IoGT spatially across cells, then compare the distribution of IoGT and centroid distance error between the sITK (Rigid + Bspline) and Xeniume Explorer (Affine) transformations.</p>
 <p>Note that this metric is highly sensitive to the quality and consistency of both segmentations being compared. Here, the mIF segmentation is approximate, and any region where cells are missing in one slide but not the other will bias the score. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs.&nbsp;Xenium Explorer) on the same segmentation inputs.</p>
-<div id="6b4438dd" class="cell" data-execution_count="10">
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If alignment via Xenium Explorer was performed on the full slide (with more than one sample), it cannot be directly compared to the sITK alignment. To make them comparable, first apply the Xenium Explorer transform to the cell coordinates in the full-slide coordinate system, then filter to the cells falling within the <code>ROI</code> (saved previously as <code>.geojson</code>), and subtract its top-left corner from their coordinates, this brings them into the same coordinate system as the cropped image used for sITK alignment.</p>
+</div>
+</div>
+<div id="a1b123e5" class="cell" data-execution_count="10">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Metrics</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">## Ground thruth</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>if_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4_segmentation.geojson"</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>gdf_gt <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(if_nucleus_geojson, meta_source)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">## sITK</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>transformed_inverse_10 <span class="op">=</span> Path(output_dir_mif, <span class="ss">f"transformed_inverse_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.geojson"</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(transformed_inverse_10, meta_source)</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>best_matches_sitk <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_sitk <span class="op">=</span> os.path.join(output_dir_mif, <span class="ss">f"iogt_spatial_sitk_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_sitk, output_iogt_spatial_sitk)</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Affine</span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>affine_transformed_inverse <span class="op">=</span> Path(output_dir_mif, <span class="st">"affine_transformed_inverse.geojson"</span>)</span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(affine_transformed_inverse, meta_source)</span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>best_matches_affine <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_affine <span class="op">=</span> os.path.join(output_dir_mif, <span class="st">"iogt_spatial_affine.png"</span>)</span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_affine, output_iogt_spatial_affine)</span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co">## Comparison</span></span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>output_iogt_comp <span class="op">=</span> os.path.join(output_dir_mif, <span class="ss">f"iogt_benchmark_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_iogt_distribution_comp(best_matches_sitk, <span class="st">"sITK"</span>, best_matches_affine, <span class="st">"Affine"</span>, output_iogt_comp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Metrics</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">## Ground thruth</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>if_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/IF_colon_4_segmentation.geojson"</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>gdf_gt <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(if_nucleus_geojson, meta_source)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">## sITK</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>transformed_inverse_10 <span class="op">=</span> Path(output_dir_mif, <span class="ss">f"transformed_inverse_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.geojson"</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(transformed_inverse_10, meta_source)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>best_matches_sitk <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_sitk <span class="op">=</span> os.path.join(output_dir_mif, <span class="ss">f"iogt_spatial_sitk_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_sitk, output_iogt_spatial_sitk)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Affine</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>affine_transformed_inverse <span class="op">=</span> Path(output_dir_mif, <span class="st">"affine_transformed_inverse.geojson"</span>)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(affine_transformed_inverse, meta_source)</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>best_matches_affine <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_affine <span class="op">=</span> os.path.join(output_dir_mif, <span class="st">"iogt_spatial_affine.png"</span>)</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_affine, output_iogt_spatial_affine)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="co">## Comparison</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>output_iogt_comp <span class="op">=</span> os.path.join(output_dir_mif, <span class="ss">f"iogt_benchmark_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_iogt_distribution_comp(best_matches_sitk, <span class="st">"sITK"</span>, best_matches_affine, <span class="st">"Affine"</span>, output_iogt_comp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -444,63 +496,63 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>Xenium and post-Xenium H&amp;E</h1>
 <section id="paths-1" class="level2">
 <h2 class="anchored" data-anchor-id="paths-1">Paths</h2>
-<div id="43d569f2" class="cell" data-execution_count="11">
+<div id="1218581d" class="cell" data-execution_count="11">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># HE</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>HE_IMG_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4.ome.tif"</span>)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#HE_ADATA_PATH = Path("../xenium/1404/AN22001404_01_filtered.h5ad")</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># XENIUM</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>XE_DIR <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/xenium/"</span>)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">#XE_IMG_PATH = xa.data.get_xenium_image_paths(XE_DIR)</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Output directory</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>output_dir_he <span class="op">=</span> Path(<span class="st">"./COLON_HE_results"</span>)</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>output_dir_he.mkdir(parents<span class="op">=</span><span class="va">True</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># HE</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>HE_IMG_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4.ome.tif"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">#HE_ADATA_PATH = Path("../xenium/1404/AN22001404_01_filtered.h5ad")</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># XENIUM</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>XE_DIR <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/xenium/"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co">#XE_IMG_PATH = xa.data.get_xenium_image_paths(XE_DIR)</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Output directory</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>output_dir_he <span class="op">=</span> Path(<span class="st">"./COLON_HE_results"</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>output_dir_he.mkdir(parents<span class="op">=</span><span class="va">True</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
 <section id="load-images-and-metada" class="level2">
 <h2 class="anchored" data-anchor-id="load-images-and-metada">Load images and metada</h2>
-<div id="fc6eb0ee" class="cell" data-execution_count="12">
+<div id="acebf7de" class="cell" data-execution_count="12">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name <span class="op">=</span> xa.data.load_images_and_metadata_he(HE_IMG_PATH, XE_DIR)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name <span class="op">=</span> xa.data.load_images_and_metadata_he(HE_IMG_PATH, XE_DIR)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
 <section id="visualize-images-1" class="level2">
 <h2 class="anchored" data-anchor-id="visualize-images-1">Visualize images</h2>
 <p>This helps assess how similar the two images are before running the registration.</p>
-<div id="0c641f91" class="cell" data-execution_count="13">
+<div id="be1535d0" class="cell" data-execution_count="13">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].imshow(proc_source)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].axis(<span class="st">'off'</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Source (mIF)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].imshow(proc_target)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].axis(<span class="st">'off'</span>)</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Target (Xenium)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f'</span><span class="sc">{</span>output_dir_he<span class="sc">}</span><span class="ss">/processed_images.png'</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>, pad_inches<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].imshow(proc_source)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].axis(<span class="st">'off'</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Source (mIF)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].imshow(proc_target)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].axis(<span class="st">'off'</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Target (Xenium)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f'</span><span class="sc">{</span>output_dir_he<span class="sc">}</span><span class="ss">/processed_images.png'</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>, pad_inches<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
 <section id="registration-1" class="level2">
 <h2 class="anchored" data-anchor-id="registration-1">Registration</h2>
-<div id="64be7b4b" class="cell" data-execution_count="14">
+<div id="1e72e057" class="cell" data-execution_count="14">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Deformation resolution</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>ms <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Load source and target images</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>fixed <span class="op">=</span> xa.data.get_sitk_image(proc_source, meta_source)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>moving <span class="op">=</span> xa.data.get_sitk_image(proc_target, meta_target)</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Run registration</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>moving_rigid, tx_rigid, moving_bspline, tx_bspline <span class="op">=</span> xa.module.run_registration(fixed, moving, combo_dir, ms)</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize results</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>xa.plot.registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir, ms)</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>xa.plot.local_deformations(fixed, tx_bspline, combo_dir, ms)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Deformation resolution</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>ms <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Load source and target images</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>fixed <span class="op">=</span> xa.data.get_sitk_image(proc_source, meta_source)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>moving <span class="op">=</span> xa.data.get_sitk_image(proc_target, meta_target)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Run registration</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>moving_rigid, tx_rigid, moving_bspline, tx_bspline <span class="op">=</span> xa.module.run_registration(fixed, moving, combo_dir, ms)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize results</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>xa.plot.registration_summary(fixed, moving, moving_rigid, moving_bspline, combo_dir, ms)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>xa.plot.local_deformations(fixed, tx_bspline, combo_dir, ms)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -511,11 +563,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="from-he-source-to-xenium-target">From HE (source) to xenium (target)</h3>
 <p>We can transform the segmentation of H&amp;E to the Xenium slide.</p>
 <p>Here we did the segmentation using <code>Positive cell detection</code> in QuPath on Eosin OD mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.</p>
-<div id="402da8a2" class="cell" data-execution_count="15">
+<div id="1459a76d" class="cell" data-execution_count="15">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>he_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4_segmentation.geojson"</span>)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(he_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>he_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4_segmentation.geojson"</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(he_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -523,19 +575,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="from-xenium-target-to-he-source">From xenium (target) to HE (source)</h3>
 <p>We export the Xenium nucleus and cell segmentation (or only one of the two using <code>export_nucleus</code> / <code>export_cells</code> flags) to <code>.geojson</code> directly from the raw Xenium output (originally in microns), converting coordinates to pixels.</p>
 <p>Pixel coordinates allow the result to be opened directly in QuPath and compared alongside other annotations / segmentations, each cell remains traceable back to its original Xenium cell ID despite the unit change.</p>
-<div id="b07546f1" class="cell" data-execution_count="16">
+<div id="412f1fc2" class="cell" data-execution_count="16">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Get xenium nucleus and cells segmentation as .geojson in the output_dir</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>xa.data.export_xenium_to_pixel_geojson(XE_DIR, meta_target, combo_dir)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Get xenium nucleus and cells segmentation as .geojson in the output_dir</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>xa.data.export_xenium_to_pixel_geojson(XE_DIR, meta_target, combo_dir)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="185a3176" class="cell" data-execution_count="17">
+<div id="f08a3418" class="cell" data-execution_count="17">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>xe_nucleus_geojson <span class="op">=</span> Path(combo_dir, <span class="st">"nucleus_xenium.geojson"</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">## Transform coordinates</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>xe_nucleus_geojson <span class="op">=</span> Path(combo_dir, <span class="st">"nucleus_xenium.geojson"</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">## Transform coordinates</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -544,13 +596,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="transform-with-xenium-explorer-affine-1">Transform with Xenium Explorer (Affine)</h2>
 <section id="from-xenium-target-to-he-source-1" class="level3">
 <h3 class="anchored" data-anchor-id="from-xenium-target-to-he-source-1">From xenium (target) to HE (source)</h3>
-<div id="fd6d29fc" class="cell" data-execution_count="18">
+<div id="afe776cd" class="cell" data-execution_count="18">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Alignement file from xenium explorer</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>MATRIX_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4_alignment_files/matrix.csv"</span>)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">## Transform coordinates</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>xa.module.apply_affine_transform(xe_nucleus_geojson, combo_dir, MATRIX_PATH, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Alignement file from xenium explorer</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>MATRIX_PATH <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4_alignment_files/matrix.csv"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">## Transform coordinates</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>xa.module.apply_affine_transform(xe_nucleus_geojson, combo_dir, MATRIX_PATH, inverse <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -561,33 +613,46 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth H&amp;E segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell’s area recovered by the corresponding transformed cell).</p>
 <p>We first visualize IoGT spatially across cells, then compare the distribution of IoGT and centroid distance error between the sITK (Rigid + Bspline) and Xeniume Explorer (Affine) transformations.</p>
 <p>Note that this metric is highly sensitive to the quality and consistency of both segmentations being compared. Here, the H&amp;E segmentation is approximate, and any region where cells are missing in one slide but not the other will bias the score. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs.&nbsp;Xenium Explorer) on the same segmentation inputs.</p>
-<div id="4a72461f" class="cell" data-execution_count="19">
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If alignment via Xenium Explorer was performed on the full slide (with more than one sample), it cannot be directly compared to the sITK alignment. To make them comparable, first apply the Xenium Explorer transform to the cell coordinates in the full-slide coordinate system, then filter to the cells falling within the <code>ROI</code> (saved previously as <code>.geojson</code>), and subtract its top-left corner from their coordinates, this brings them into the same coordinate system as the cropped image used for sITK alignment.</p>
+</div>
+</div>
+<div id="b8162cf7" class="cell" data-execution_count="19">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Ground thruth</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>he_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4_segmentation.geojson"</span>)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>gdf_gt <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(he_nucleus_geojson, meta_source)</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">## sITK</span></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>transformed_inverse <span class="op">=</span> Path(combo_dir, <span class="ss">f"transformed_inverse_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.geojson"</span>)</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(transformed_inverse, meta_source)</span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>best_matches_sitk <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_sitk <span class="op">=</span> os.path.join(combo_dir, <span class="ss">f"iogt_spatial_sitk_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_sitk, output_iogt_spatial_sitk)</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="co">## Affine</span></span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>affine_transformed_inverse <span class="op">=</span> Path(combo_dir, <span class="st">"affine_transformed_inverse.geojson"</span>)</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(affine_transformed_inverse, meta_source)</span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>best_matches_affine <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_affine <span class="op">=</span> os.path.join(combo_dir, <span class="st">"iogt_spatial_affine.png"</span>)</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_affine, output_iogt_spatial_affine)</span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a><span class="co">## Comparison</span></span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>output_iogt_comp <span class="op">=</span> os.path.join(combo_dir, <span class="ss">f"iogt_benchmark_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_iogt_distribution_comp(best_matches_sitk, <span class="st">"sITK"</span>, best_matches_affine, <span class="st">"Affine"</span>, output_iogt_comp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Ground thruth</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>he_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../COLON_Xenium_data/IF_HE/HE_colon_4_segmentation.geojson"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>gdf_gt <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(he_nucleus_geojson, meta_source)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">## sITK</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>transformed_inverse <span class="op">=</span> Path(combo_dir, <span class="ss">f"transformed_inverse_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.geojson"</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(transformed_inverse, meta_source)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>best_matches_sitk <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_sitk <span class="op">=</span> os.path.join(combo_dir, <span class="ss">f"iogt_spatial_sitk_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_sitk, output_iogt_spatial_sitk)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co">## Affine</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>affine_transformed_inverse <span class="op">=</span> Path(combo_dir, <span class="st">"affine_transformed_inverse.geojson"</span>)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>gdf_pred <span class="op">=</span> xa.data.load_gdf_pixel_to_microns(affine_transformed_inverse, meta_source)</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>best_matches_affine <span class="op">=</span> xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>output_iogt_spatial_affine <span class="op">=</span> os.path.join(combo_dir, <span class="st">"iogt_spatial_affine.png"</span>)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_spatial_alignment(best_matches_affine, output_iogt_spatial_affine)</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a><span class="co">## Comparison</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>output_iogt_comp <span class="op">=</span> os.path.join(combo_dir, <span class="ss">f"iogt_benchmark_</span><span class="sc">{</span>ms<span class="sc">}</span><span class="ss">.png"</span>)</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>xa.plot.plot_iogt_distribution_comp(best_matches_sitk, <span class="st">"sITK"</span>, best_matches_affine, <span class="st">"Affine"</span>, output_iogt_comp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 
