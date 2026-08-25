@@ -7,5 +7,8 @@
   },
   "analysis/01_ToyDataset.qmd": {
     "01_ToyDataset.html": "8c196a5b"
+  },
+  "analysis/02_WholeSlide.qmd": {
+    "02_WholeSlide.html": "57442095"
   }
 }

@@ -1,5 +1,5 @@
 ---
-title: "1. Registration on toy dataset"
+title: "Registration on toy dataset"
 #author: "Leo Hermet"
 format:
   html:
@@ -8,19 +8,22 @@ format:
 jupyter: python3
 ---
 
-Here we align the Xenium slide with both the post-Xenium mIF and post-Xenium H&E images, since the same physical slide was imaged across all three technologies. 
+This notebook walks through the full alignment pipeline on a small region of interest (ROI) extracted from the whole slide. Working on a smaller image keeps runtime low and makes it easier to inspect results at cell-level detail, making this the best starting point to understand each step of the pipeline. 
 
-But each of these alignments can be run independently, if you have only one of the two post-Xenium images (H&E or mIF), simply run the corresponding section.
+Note that a few parameters differ slightly from the whole-slide notebook (spacing, channel combination for the H&E–Xenium alignment), as they were chosen to work best at this smaller scale.
 
 ## Imports
 ```{python}
-from pathlib import Path
-import matplotlib.pyplot as plt
-import spatialdata_io
-import os
-
 import xenium_align as xa
+
+from pathlib import Path
+import os
+import matplotlib.pyplot as plt
 ```
+
+Here we align the Xenium slide with both the post-Xenium mIF and post-Xenium H&E images, since the same physical slide was imaged across all three technologies. 
+
+But each of these alignments can be run independently, if you have only one of the two post-Xenium images (H&E or mIF), simply run the corresponding section.
 
 # Xenium and post-Xenium mIF
 ## Paths
@@ -35,8 +38,10 @@ output_dir_mif = Path("../toydataset_mIF_results")
 output_dir_mif.mkdir(parents=True, exist_ok=True)
 ```
 
-## Load images and metada
-To avoid long processing times, we load each image at a reduced resolution. Since the IF and Xenium images are acquired on different microscopes, they have different native pixel spacings (µm/px). Each image's resolution level is therefore selected automatically to match a common target resolution (2 µm/px by default), chosen as a trade-off between alignment accuracy and computing time.
+## Load images and metadata
+To avoid long processing times, we load each image at a reduced resolution. Since the IF and Xenium images are acquired on different microscopes, they have different native pixel spacings (µm/px). Each image's resolution level is therefore selected automatically to match a common target resolution (resolution level closest to 2 µm/px by default), chosen as a trade-off between alignment accuracy and computing time.
+
+For this toy dataset, since the images to align are smaller, we use a finer target resolution (resolution level closest to 1 µm/px).
 
 For both Xenium and post-Xenium mIF we exctract the DAPI channel.
 
@@ -80,7 +85,9 @@ However, the "Load images and metadata" section must be executed first to ensure
 You also need to specify `ms`, matching the mesh size of the registration run you want to use.
 
 ### From mIF (source) to Xenium (target)
-We can transform the segmentation of mIF to the Xenium slide. Here we did the segmentation using `Positive cell detection` in QuPath on DAPI mean and with a treshold at 17 (0µm cell expansion). Segmentation can be improved using other tools.
+We can transform the segmentation of mIF to the Xenium slide. 
+
+Here we did the segmentation using `Positive cell detection` in QuPath on DAPI mean and with a treshold at 17 (0µm cell expansion). Segmentation can be improved using other tools.
 
 ```{python}
 mif_nucleus_geojson = Path("../toy_dataset/IF_nucleus_coords.geojson")
@@ -109,7 +116,7 @@ And then check the alignment accuracy (how well the transformed nucleus segmenta
 ![QuPath Brightness & Contrast panel with only DAPI and Opal 520 enabled.](../images/QuPath_brightness_post_xenium_mIF.png){fig-alt="Channels to show with post-Xenium mIF" fig-align="center"}
 
 #### Cells coordinates
-In the same way, we can transform the cells segmented from the Xenium multimodal segmentation into the post-Xenium mIF space, in order to annotate the cells (instead of relying on classical nuclear expansion).
+In the same way, we can transform the cells segmented from the Xenium multimodal segmentation into the post-Xenium mIF space, in order to **annotate the cells** (instead of relying on classical nuclear expansion).
 
 ```{python}
 xe_nucleus_geojson = Path("../toy_dataset/XENIUM_cells_coords.geojson")
@@ -121,7 +128,9 @@ Once transformed, the Xenium cell boundaries can be used to extract mIF signal d
 
 ![Xenium cells segmentation transformed into the post-Xenium mIF slide, Annotation : Neutrophiles (green) and Others (yellow)](../images/Xenium_cell_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium cell segmentation transformed" fig-align="center"}
 
-On this example, annotation is done directly in QuPath. The transformed cell boundaries are imported as **detection** objects, which is required for per-cell measurements and thresholding in QuPath. Intensity features (mean, median, etc.) are then computed per channel on each cell's own ROI via `Analyze` -> `Calculate features` -> `Add intensity features...`. 
+On this example, annotation is done directly in QuPath. The transformed cell boundaries are imported as **detection** objects, which is required for per-cell measurements and thresholding in QuPath. 
+
+Intensity features (mean, median, etc.) are then computed per channel on each cell's own ROI via `Analyze` -> `Calculate features` -> `Add intensity features...`. 
 
 Cells are finally classified using QuPath's `Object classification` -> `Create single measurement classifier...`, thresholding at 15 on Opal 520: Median to assign each cell a class (Neutrophils vs. Others).
 
@@ -176,26 +185,15 @@ meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_di
 This helps assess how similar the two images are before running the registration.
 
 ```{python}
-plt.figure(figsize=(15, 15))
-plt.imshow(proc_source)
-plt.axis('off')
-plt.savefig(f'{combo_dir}/proc_source.png', bbox_inches='tight', pad_inches=0)
-plt.close()
-
-plt.figure(figsize=(15, 15))
-plt.imshow(proc_target)
-plt.axis('off')
-plt.savefig(f'{combo_dir}/proc_target.png', bbox_inches='tight', pad_inches=0)
-plt.close()
-
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 axes[0].imshow(proc_source)
 axes[0].axis('off')
-axes[0].set_title('Source (HE)', fontsize=10)
+axes[0].set_title('Source (mIF)', fontsize=10)
 axes[1].imshow(proc_target)
 axes[1].axis('off')
 axes[1].set_title('Target (Xenium)', fontsize=10)
 plt.tight_layout()
+plt.savefig(f'{output_dir_mif}/processed_images.png', bbox_inches='tight', pad_inches=0)
 ```
 
 
@@ -220,7 +218,9 @@ You also need to specify `ms`, matching the mesh size of the registration run yo
 
 
 ### From HE (source) to xenium (target)
-We can transform the segmentation of H&E to the Xenium slide. Here we did the segmentation using `Positive cell detection` in QuPath on Eosin OD mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.
+We can transform the segmentation of H&E to the Xenium slide. 
+
+Here we did the segmentation using `Positive cell detection` in QuPath on Eosin OD mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.
 
 ```{python}
 he_nucleus_geojson = Path("../toy_dataset/HE_nucleus_coords.geojson")

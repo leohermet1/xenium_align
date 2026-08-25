@@ -35,7 +35,8 @@ website:
         contents:
           - text: "1. Registration on toy dataset"
             href: analysis/01_ToyDataset.qmd
-          #- text: "2. Comparison between Xenium Explorer and sITK"
+          - text: "2. Registration on whole slide"
+            href: analysis/02_WholeSlide.qmd
 
 format:
   html:

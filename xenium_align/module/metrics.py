@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 
-def match_and_compute_iou(gdf_pred, gdf_gt):
+def match_and_compute_iogt(gdf_pred, gdf_gt):
     """
     Spatial join pred/gt geometries and compute intersection-over-gt-area / centroid distance,
     keeping only the best-matching pred for each gt cell.
@@ -27,11 +27,11 @@ def match_and_compute_iou(gdf_pred, gdf_gt):
 
     matched['intersection_area'] = s_pred.intersection(s_gt).area
     # Intersection over GT area
-    matched['iou'] = matched['intersection_area'] / s_gt.area
+    matched['iogt'] = matched['intersection_area'] / s_gt.area
     matched['dist_error'] = s_pred.centroid.distance(s_gt.centroid)
 
     # Keep only the best-matching pred per gt cell
-    best_matches = matched.sort_values('iou', ascending=False).drop_duplicates(subset='gt_idx', keep='first')
+    best_matches = matched.sort_values('iogt', ascending=False).drop_duplicates(subset='gt_idx', keep='first')
 
     summary_statistics(best_matches, gdf_pred, gdf_gt)
     return best_matches
@@ -52,13 +52,13 @@ def resolve_matches(matched):
 
 def summary_statistics(best_matches, gdf_pred, gdf_gt):
     """
-    Show IoU metrics
+    Show IoGT metrics
     """
-    mean_iou = best_matches['iou'].mean()
-    median_iou = best_matches['iou'].median()
-    success_rate = (best_matches['iou'] > 0.5).sum() / len(gdf_pred) * 100
-    logger.info(f"Mean IoU: {mean_iou:.4f}")
-    logger.info(f"Median IoU: {median_iou:.4f}")
-    logger.info(f"Success Rate (IoU > 0.5): {success_rate:.2f}%")
+    mean_iogt = best_matches['iogt'].mean()
+    median_iogt = best_matches['iogt'].median()
+    success_rate = (best_matches['iogt'] > 0.5).sum() / len(gdf_pred) * 100
+    logger.info(f"Mean IoGT: {mean_iogt:.4f}")
+    logger.info(f"Median IoGT: {median_iogt:.4f}")
+    logger.info(f"Success Rate (IoGT > 0.5): {success_rate:.2f}%")
     logger.info(f"Average GT Area: {gdf_gt.geometry.area.mean():.2f}")
     logger.info(f"Average Pred Area: {gdf_pred.geometry.area.mean():.2f}")

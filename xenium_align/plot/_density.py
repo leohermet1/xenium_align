@@ -28,7 +28,6 @@ def plot_iou_distribution(best_matches, output_path="iou_distribution_report.png
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=dpi)
-    plt.close(fig)
 
 def plot_iou_distribution_comp(best_matches_1, label_1, best_matches_2, label_2, output_path="iou_comparison.png", dpi=300):
     # --- Visualization ---

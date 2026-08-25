@@ -33,7 +33,7 @@ By using a **B-Spline transformation**, we compensate for the "optical distortio
 
 ::: {.callout-note}
 ## Validation & Comparison
-In the [Validation] module, we provide tools to compare the composite transformation results against affine alignments, quantifying the gain in precision (IoU, distance error).
+In the [Registration on whole slide](analysis/02_WholeSlide.qmd) module, we provide tools to compare the results between both methods, quantifying comparable accuracy (Intersection and distance error over ground thruth ).
 :::
 
 ### Installation
@@ -50,13 +50,14 @@ mamba activate xenium_align
 
 ### Step-by-Step Pipeline
 
-* **Data Preparation**: Load and format images, cell boundaries (e.g., Xenium outputs).
+* **Data Preparation**: Load and format images for alignment.
 
 * **Image Registration**: Automatic alignment using SimpleITK.
 
 * **Transformation**: Map spatial annotations (such as cell boundaries) into the target coordinate system.
 
-* **Validation**:  Validate the result using IoU and distance error against ground truth segmentation.
+* **Validation**:  Validate the result using Intersection and distance error against ground truth segmentation.
 
 ### [Exemple with a toydataset](analysis/01_ToyDataset.qmd)
+### [Registration on whole slide](analysis/02_WholeSlide.qmd)
 

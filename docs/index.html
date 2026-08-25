@@ -193,6 +193,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">1. Registration on toy dataset</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./analysis/02_WholeSlide.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">2. Registration on whole slide</span></a>
+  </div>
+</li>
       </ul>
   </li>
     </ul>
@@ -209,6 +215,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#installation" id="toc-installation" class="nav-link" data-scroll-target="#installation">Installation</a></li>
   <li><a href="#step-by-step-pipeline" id="toc-step-by-step-pipeline" class="nav-link" data-scroll-target="#step-by-step-pipeline">Step-by-Step Pipeline</a></li>
   <li><a href="#exemple-with-a-toydataset" id="toc-exemple-with-a-toydataset" class="nav-link" data-scroll-target="#exemple-with-a-toydataset">Exemple with a toydataset</a></li>
+  <li><a href="#registration-on-whole-slide" id="toc-registration-on-whole-slide" class="nav-link" data-scroll-target="#registration-on-whole-slide">Registration on whole slide</a></li>
   </ul>
 </nav>
     </div>
@@ -281,7 +288,7 @@ Validation &amp; Comparison
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>In the [Validation] module, we provide tools to compare the composite transformation results against affine alignments, quantifying the gain in precision (IoU, distance error).</p>
+<p>In the <a href="./analysis/02_WholeSlide.html">Registration on whole slide</a> module, we provide tools to compare the results between both methods, quantifying comparable accuracy (Intersection and distance error over ground thruth ).</p>
 </div>
 </div>
 </section>
@@ -297,14 +304,17 @@ Validation &amp; Comparison
 <section id="step-by-step-pipeline" class="level3">
 <h3 class="anchored" data-anchor-id="step-by-step-pipeline">Step-by-Step Pipeline</h3>
 <ul>
-<li><p><strong>Data Preparation</strong>: Load and format images, cell boundaries (e.g., Xenium outputs).</p></li>
+<li><p><strong>Data Preparation</strong>: Load and format images for alignment.</p></li>
 <li><p><strong>Image Registration</strong>: Automatic alignment using SimpleITK.</p></li>
 <li><p><strong>Transformation</strong>: Map spatial annotations (such as cell boundaries) into the target coordinate system.</p></li>
-<li><p><strong>Validation</strong>: Validate the result using IoU and distance error against ground truth segmentation.</p></li>
+<li><p><strong>Validation</strong>: Validate the result using Intersection and distance error against ground truth segmentation.</p></li>
 </ul>
 </section>
 <section id="exemple-with-a-toydataset" class="level3">
 <h3 class="anchored" data-anchor-id="exemple-with-a-toydataset"><a href="./analysis/01_ToyDataset.html">Exemple with a toydataset</a></h3>
+</section>
+<section id="registration-on-whole-slide" class="level3">
+<h3 class="anchored" data-anchor-id="registration-on-whole-slide"><a href="./analysis/02_WholeSlide.html">Registration on whole slide</a></h3>
 
 
 </section>
