@@ -98,14 +98,20 @@ xa.plot.local_deformations(fixed, tx_bspline, output_dir_mif, ms)
 ```
 
 ## Transform
-NOTE: The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
+The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
 However, the "Load images and metadata" section must be executed first to ensure metadata (e.g., `meta_source`, `meta_target`, `offset_x`, `offset_y`) are available.
 You also need to specify `ms`, matching the mesh size of the registration run you want to use.
+
+::: {.callout-note}
+Segmented cell/nucleus GeoJSONs are saved with `objectType = "detection"` (not `"annotation"`), as detections are QuPath's object type for segmentations, enabling standard per-object measurements and classification (Calculate intensity, Classifiers, ...`).
+
+To delete them in QuPath: `Objects` → `Select` → `Select all detections`, then `Objects` → `Delete` → `Delete selected objects`.
+:::
 
 ### From mIF (source) to Xenium (target)
 We can transform the segmentation of mIF to the Xenium slide. 
 
-Here we did the segmentation using `Positive cell detection` in QuPath on DAPI mean and with a treshold at 17 (0µm cell expansion). Segmentation can be improved using other tools.
+Here we did the segmentation using `Positive cell detection` in QuPath on DAPI mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.
 
 ```{python}
 mif_nucleus_geojson = Path("../toy_dataset/IF_nucleus_coords.geojson")
@@ -129,7 +135,9 @@ And then check the alignment accuracy (how well the transformed nucleus segmenta
 
 ![Xenium nucleus segmentation transformed into the post-Xenium mIF slide](../images/Xenium_nuc_seg_transformed_to_mIF_post_Xenium_slide.png){fig-alt="Xenium nucleus segmentation transformed mIF" fig-align="center"}
 
-**Note:** Since both post-Xenium H&E and mIF are available for this sample, the mIF panel is kept minimal : only one marker in addition to DAPI (Opal 520). So if you want to visualize the transformed nucleus of Xenium in the mIF slide with QuPath, show only the DAPI and Opal 520 channels.
+::: {.callout-note} 
+Since both post-Xenium H&E and mIF are available for this sample, the mIF panel is kept minimal : only one marker in addition to DAPI (Opal 520). So if you want to visualize the transformed nucleus of Xenium in the mIF slide with QuPath, show only the DAPI and Opal 520 channels.
+:::
 
 ![QuPath Brightness & Contrast panel with only DAPI and Opal 520 enabled.](../images/QuPath_brightness_post_xenium_mIF.png){fig-alt="Channels to show with post-Xenium mIF" fig-align="center"}
 
@@ -218,7 +226,7 @@ This helps assess how similar the two images are before running the registration
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 axes[0].imshow(proc_source)
 axes[0].axis('off')
-axes[0].set_title('Source (mIF)', fontsize=10)
+axes[0].set_title('Source (H&E)', fontsize=10)
 axes[1].imshow(proc_target)
 axes[1].axis('off')
 axes[1].set_title('Target (Xenium)', fontsize=10)
@@ -242,7 +250,7 @@ xa.plot.local_deformations(fixed, tx_bspline, combo_dir, ms)
 ```
 
 ## Transform
-NOTE: The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
+The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
 However, the "Load images and metadata" section must be executed first to ensure metadata (e.g., `meta_source`, `meta_target`, `offset_x`, `offset_y`, `combo_dir`) are available.
 You also need to specify `ms`, matching the mesh size of the registration run you want to use.
 

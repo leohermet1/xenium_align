@@ -1,14 +1,11 @@
 {
-  "index.qmd": {
-    "index.html": "7390c756"
-  },
-  "analysis/01_preprocessing.qmd": {
-    "01_preprocessing.html": "f5829086"
-  },
   "analysis/01_ToyDataset.qmd": {
-    "01_ToyDataset.html": "8c196a5b"
+    "01_ToyDataset.html": "99ca4766"
   },
   "analysis/02_WholeSlide.qmd": {
-    "02_WholeSlide.html": "57442095"
+    "02_WholeSlide.html": "96900586"
+  },
+  "index.qmd": {
+    "index.html": "d8f8703a"
   }
 }

@@ -279,7 +279,7 @@ Note
 </div>
 <section id="imports" class="level2">
 <h2 class="anchored" data-anchor-id="imports">Imports</h2>
-<div id="fd4b431f" class="cell" data-execution_count="1">
+<div id="fab53fdf" class="cell" data-execution_count="1">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> xenium_align <span class="im">as</span> xa</span>
@@ -296,7 +296,7 @@ Note
 <h1>Xenium and post-Xenium mIF</h1>
 <section id="paths" class="level2">
 <h2 class="anchored" data-anchor-id="paths">Paths</h2>
-<div id="c4950692" class="cell" data-execution_count="2">
+<div id="47649e97" class="cell" data-execution_count="2">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># IF</span></span>
@@ -315,7 +315,7 @@ Note
 <p>To avoid long processing times, we load each image at a reduced resolution. Since the IF and Xenium images are acquired on different microscopes, they have different native pixel spacings (µm/px). Each image’s resolution level is therefore selected automatically to match a common target resolution (resolution level closest to 2 µm/px by default), chosen as a trade-off between alignment accuracy and computing time.</p>
 <p>For this toy dataset, since the images to align are smaller, we use a finer target resolution (resolution level closest to 1 µm/px).</p>
 <p>For both Xenium and post-Xenium mIF we exctract the DAPI channel.</p>
-<div id="fd8763dc" class="cell" data-execution_count="3">
+<div id="ce2bd61f" class="cell" data-execution_count="3">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>meta_source, meta_target, offset_x, offset_y, proc_source, proc_target <span class="op">=</span> xa.data.load_images_and_metadata_mif(IF_IMG_PATH, XE_DIR, target_spacing_um <span class="op">=</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -348,7 +348,7 @@ Note
 <section id="visualize-images" class="level2">
 <h2 class="anchored" data-anchor-id="visualize-images">Visualize images</h2>
 <p>This helps assess how similar the two images are before running the registration.</p>
-<div id="a51fe9f7" class="cell" data-execution_count="4">
+<div id="0c28bc1e" class="cell" data-execution_count="4">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
@@ -372,7 +372,7 @@ Note
 </section>
 <section id="registration" class="level2">
 <h2 class="anchored" data-anchor-id="registration">Registration</h2>
-<div id="3af6e910" class="cell" data-execution_count="5">
+<div id="31c67602" class="cell" data-execution_count="5">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Deformation resolution</span></span>
@@ -408,12 +408,26 @@ Note
 </section>
 <section id="transform" class="level2">
 <h2 class="anchored" data-anchor-id="transform">Transform</h2>
-<p>NOTE: The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename). However, the “Load images and metadata” section must be executed first to ensure metadata (e.g., <code>meta_source</code>, <code>meta_target</code>, <code>offset_x</code>, <code>offset_y</code>) are available. You also need to specify <code>ms</code>, matching the mesh size of the registration run you want to use.</p>
+<p>The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename). However, the “Load images and metadata” section must be executed first to ensure metadata (e.g., <code>meta_source</code>, <code>meta_target</code>, <code>offset_x</code>, <code>offset_y</code>) are available. You also need to specify <code>ms</code>, matching the mesh size of the registration run you want to use.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Segmented cell/nucleus GeoJSONs are saved with <code>objectType = "detection"</code> (not <code>"annotation"</code>), as detections are QuPath’s object type for segmentations, enabling standard per-object measurements and classification (Calculate intensity, Classifiers, …`).</p>
+<p>To delete them in QuPath: <code>Objects</code> → <code>Select</code> → <code>Select all detections</code>, then <code>Objects</code> → <code>Delete</code> → <code>Delete selected objects</code>.</p>
+</div>
+</div>
 <section id="from-mif-source-to-xenium-target" class="level3">
 <h3 class="anchored" data-anchor-id="from-mif-source-to-xenium-target">From mIF (source) to Xenium (target)</h3>
 <p>We can transform the segmentation of mIF to the Xenium slide.</p>
-<p>Here we did the segmentation using <code>Positive cell detection</code> in QuPath on DAPI mean and with a treshold at 17 (0µm cell expansion). Segmentation can be improved using other tools.</p>
-<div id="fa82cff7" class="cell" data-execution_count="6">
+<p>Here we did the segmentation using <code>Positive cell detection</code> in QuPath on DAPI mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.</p>
+<div id="cadbff27" class="cell" data-execution_count="6">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mif_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../toy_dataset/IF_nucleus_coords.geojson"</span>)</span>
@@ -421,7 +435,7 @@ Note
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(mif_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
-<pre><code>[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_mIF_results/transformed_5.geojson</code></pre>
+<pre><code>[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_mIF_results/IF_nucleus_coords_transformed_5.geojson</code></pre>
 </div>
 </div>
 <p>Next, we can use spatial join to match cells between mIF and Xenium.</p>
@@ -431,7 +445,7 @@ Note
 <section id="nucleus-coordinates" class="level4">
 <h4 class="anchored" data-anchor-id="nucleus-coordinates">Nucleus coordinates</h4>
 <p>We can also transform nucleus segmentation from Xenium to the post-Xenium mIF slide (using the inverse transform).</p>
-<div id="2d308632" class="cell" data-execution_count="7">
+<div id="4582f89c" class="cell" data-execution_count="7">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>xe_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../toy_dataset/XENIUM_nucleus_coords.geojson"</span>)</span>
@@ -440,7 +454,7 @@ Note
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>[INFO] (xenium_align.module.transform) Computing inverse transform field...
-[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_mIF_results/transformed_inverse_5.geojson</code></pre>
+[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_mIF_results/XENIUM_nucleus_coords_transformed_inverse_5.geojson</code></pre>
 </div>
 </div>
 <p>And then check the alignment accuracy (how well the transformed nucleus segmentation match the DAPI signal of the post-Xenium mIF slide) :</p>
@@ -450,7 +464,19 @@ Note
 <figcaption>Xenium nucleus segmentation transformed into the post-Xenium mIF slide</figcaption>
 </figure>
 </div>
-<p><strong>Note:</strong> Since both post-Xenium H&amp;E and mIF are available for this sample, the mIF panel is kept minimal : only one marker in addition to DAPI (Opal 520). So if you want to visualize the transformed nucleus of Xenium in the mIF slide with QuPath, show only the DAPI and Opal 520 channels.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Since both post-Xenium H&amp;E and mIF are available for this sample, the mIF panel is kept minimal : only one marker in addition to DAPI (Opal 520). So if you want to visualize the transformed nucleus of Xenium in the mIF slide with QuPath, show only the DAPI and Opal 520 channels.</p>
+</div>
+</div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="../images/QuPath_brightness_post_xenium_mIF.png" class="img-fluid figure-img" alt="Channels to show with post-Xenium mIF"></p>
@@ -461,7 +487,7 @@ Note
 <section id="cells-coordinates" class="level4">
 <h4 class="anchored" data-anchor-id="cells-coordinates">Cells coordinates</h4>
 <p>In the same way, we can transform the cells segmented from the Xenium multimodal segmentation into the post-Xenium mIF space, in order to <strong>annotate the cells</strong> (instead of relying on classical nuclear expansion).</p>
-<div id="6e9e06cc" class="cell" data-execution_count="8">
+<div id="a340d652" class="cell" data-execution_count="8">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>xe_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../toy_dataset/XENIUM_cells_coords.geojson"</span>)</span>
@@ -470,7 +496,7 @@ Note
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>[INFO] (xenium_align.module.transform) Computing inverse transform field...
-[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_mIF_results/transformed_inverse_5.geojson</code></pre>
+[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_mIF_results/XENIUM_cells_coords_transformed_inverse_5.geojson</code></pre>
 </div>
 </div>
 <p>Once transformed, the Xenium cell boundaries can be used to extract mIF signal directly. Since each cell keeps its original Xenium ID through the transformation, the mIF annotation can then be joined back onto the cells in their original Xenium coordinates with a simple join on cell ID.</p>
@@ -497,7 +523,7 @@ Note
 <h1>Xenium and post-Xenium H&amp;E</h1>
 <section id="paths-1" class="level2">
 <h2 class="anchored" data-anchor-id="paths-1">Paths</h2>
-<div id="7ab069ca" class="cell" data-execution_count="9">
+<div id="9ced3b74" class="cell" data-execution_count="9">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># HE</span></span>
@@ -518,7 +544,7 @@ Note
 <p>However, color deconvolution is not perfectly specific to HES (HED matrix), some signal from other channels leaks into it. To match this broader signal, we therefore combine multiple Xenium IF channels : DAPI, ATP1A1, and 18S (rather than DAPI alone).</p>
 <p>You can also use DAPI alone, or any combination of two channels, if preferred, each combination is automatically saved to its own output folder named after the channels used.</p>
 <p>For this toy dataset, since the images to align are smaller, we use a finer target resolution (1 µm/px). We also use only the <code>DAPI</code> and <code>ATP1A</code> channels of the Xenium IF here, as this combination gives better alignment results at this scale.</p>
-<div id="c8552640" class="cell" data-execution_count="10">
+<div id="841791d7" class="cell" data-execution_count="10">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name <span class="op">=</span> xa.data.load_images_and_metadata_he(HE_IMG_PATH, XE_DIR, output_dir_he, target_spacing_um <span class="op">=</span> <span class="dv">1</span>, combo_name <span class="op">=</span> <span class="st">"DAPI_ATP1A"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -555,13 +581,13 @@ Note
 <section id="visualize-images-1" class="level2">
 <h2 class="anchored" data-anchor-id="visualize-images-1">Visualize images</h2>
 <p>This helps assess how similar the two images are before running the registration.</p>
-<div id="c8a26ed4" class="cell" data-execution_count="11">
+<div id="879d3019" class="cell" data-execution_count="11">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].imshow(proc_source)</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].axis(<span class="st">'off'</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Source (mIF)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Source (H&amp;E)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].imshow(proc_target)</span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].axis(<span class="st">'off'</span>)</span>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Target (Xenium)'</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
@@ -579,7 +605,7 @@ Note
 </section>
 <section id="registration-1" class="level2">
 <h2 class="anchored" data-anchor-id="registration-1">Registration</h2>
-<div id="4f6652dd" class="cell" data-execution_count="12">
+<div id="4f5220bc" class="cell" data-execution_count="12">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Deformation resolution</span></span>
@@ -615,12 +641,12 @@ Note
 </section>
 <section id="transform-1" class="level2">
 <h2 class="anchored" data-anchor-id="transform-1">Transform</h2>
-<p>NOTE: The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename). However, the “Load images and metadata” section must be executed first to ensure metadata (e.g., <code>meta_source</code>, <code>meta_target</code>, <code>offset_x</code>, <code>offset_y</code>, <code>combo_dir</code>) are available. You also need to specify <code>ms</code>, matching the mesh size of the registration run you want to use.</p>
+<p>The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename). However, the “Load images and metadata” section must be executed first to ensure metadata (e.g., <code>meta_source</code>, <code>meta_target</code>, <code>offset_x</code>, <code>offset_y</code>, <code>combo_dir</code>) are available. You also need to specify <code>ms</code>, matching the mesh size of the registration run you want to use.</p>
 <section id="from-he-source-to-xenium-target" class="level3">
 <h3 class="anchored" data-anchor-id="from-he-source-to-xenium-target">From HE (source) to xenium (target)</h3>
 <p>We can transform the segmentation of H&amp;E to the Xenium slide.</p>
 <p>Here we did the segmentation using <code>Positive cell detection</code> in QuPath on Eosin OD mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.</p>
-<div id="baa90336" class="cell" data-execution_count="13">
+<div id="528f45d0" class="cell" data-execution_count="13">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>he_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../toy_dataset/HE_nucleus_coords.geojson"</span>)</span>
@@ -628,7 +654,7 @@ Note
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>xa.module.apply_sitk_transform(he_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
-<pre><code>[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_HE_results/DAPI_ATP1A/transformed_5.geojson</code></pre>
+<pre><code>[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_HE_results/DAPI_ATP1A/HE_nucleus_coords_transformed_5.geojson</code></pre>
 </div>
 </div>
 <p>Next, we can use spatial join to match cells between HE and Xenium.</p>
@@ -636,7 +662,7 @@ Note
 <section id="from-xenium-target-to-he-source" class="level3">
 <h3 class="anchored" data-anchor-id="from-xenium-target-to-he-source">From xenium (target) to HE (source)</h3>
 <p>We can also transform nucleus segmentation from Xenium to the post-Xenium HE slide (using the inverse transform) to check the alignment accuracy :</p>
-<div id="ed8bf82b" class="cell" data-execution_count="14">
+<div id="703a0cc3" class="cell" data-execution_count="14">
 <details open="" class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>xe_nucleus_geojson <span class="op">=</span> Path(<span class="st">"../toy_dataset/XENIUM_nucleus_coords.geojson"</span>)</span>
@@ -645,7 +671,7 @@ Note
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>[INFO] (xenium_align.module.transform) Computing inverse transform field...
-[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_HE_results/DAPI_ATP1A/transformed_inverse_5.geojson</code></pre>
+[INFO] (xenium_align.module.transform) Transformed cells (sitk) exported to ../toydataset_HE_results/DAPI_ATP1A/XENIUM_nucleus_coords_transformed_inverse_5.geojson</code></pre>
 </div>
 </div>
 <div class="quarto-figure quarto-figure-center">

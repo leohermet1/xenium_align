@@ -150,12 +150,12 @@ def apply_sitk_transform(
     composite_tx_ori = sitk.CompositeTransform([tx_rigid, tx_bspline])
     gdf = _resolve_gdf(source, sdata_shapes_key=sdata_shapes_key)
     if inverse:
-        output_path = os.path.join(combo_dir, f"transformed_inverse_{ms}.geojson")
+        output_path = os.path.join(combo_dir, f"{Path(source).stem}_transformed_inverse_{ms}.geojson")
         logger.info("Computing inverse transform field...")
         composite_tx = _get_inverse_composite_transform_polygons(composite_tx_ori, meta_source)
         transform_func = sitk_inverse_transform
     else:
-        output_path = os.path.join(combo_dir, f"transformed_{ms}.geojson")
+        output_path = os.path.join(combo_dir, f"{Path(source).stem}_transformed_{ms}.geojson")
         composite_tx = composite_tx_ori
         transform_func = sitk_transform
     gdf_transformed = apply_transform(
@@ -231,10 +231,10 @@ def apply_affine_transform(input_path, combo_dir, matrix_path, inverse = False, 
     mat = pd.read_csv(matrix_path, header=None).values
     # Define inverse matrix if we want the inverse
     if inverse:
-        output_path = os.path.join(combo_dir, f"affine_transformed_inverse.geojson")
+        output_path = os.path.join(combo_dir, f"{Path(input_path).stem}_transformed_inverse_affine.geojson")
         mat = _inverse_matrix(mat)
     else:
-        output_path = os.path.join(combo_dir, f"affine_transformed.geojson")
+        output_path = os.path.join(combo_dir, f"{Path(input_path).stem}_transformed_affine.geojson")
     # Define offset if xenium explorer alignment has been done on a bigger image than sitk alignment
     if original_path and crop_path is not None:
         x_crop_offset, y_crop_offset = find_crop_origin_large_wsi(original_path, crop_path)
@@ -247,6 +247,7 @@ def apply_affine_transform(input_path, combo_dir, matrix_path, inverse = False, 
     # Apply transformation
     gdf_transformed = apply_transform(gdf, target_cell_type, affine_transform, matrix=matrix)
     # Save transformed cells
+    gdf_transformed["objectType"] = "detection"
     gdf_transformed.to_file(output_path)
     logger.info(f"Transformed cells (affine) exported to {output_path}")
 

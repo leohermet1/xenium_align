@@ -1,7 +1,5 @@
 ---
 title: "Registration on whole slide"
-execute:
-  eval: false
 #author: "Leo Hermet"
 format:
   html:
@@ -60,12 +58,12 @@ Also pay attention to pixel vs. micron units, you can convert between them using
 ## Paths
 ```{python Load }
 # mIF
-IF_IMG_PATH = Path("../COLON_Xenium_data/IF_HE/IF_colon_4.ome.tif")
+IF_IMG_PATH = Path("../COLON_data/IF_HE/IF_colon.ome.tif")
 # XENIUM
-XE_DIR = Path("../COLON_Xenium_data/xenium/")
+XE_DIR = Path("../COLON_data/xenium/")
 XE_IMG_PATH = xa.data.get_xenium_image_paths(XE_DIR)
 # Output directory
-output_dir_mif = Path("./COLON_IF_results")
+output_dir_mif = Path("../COLON_IF_results")
 output_dir_mif.mkdir(parents=True, exist_ok=True)
 ```
 
@@ -104,7 +102,7 @@ xa.plot.local_deformations(fixed, tx_bspline, output_dir_mif, ms)
 ```
 
 ## Transform with sITK (Rigid + Bspline)
-NOTE: The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
+The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
 However, the "Load images and metadata" section must be executed first to ensure metadata (e.g., `meta_source`, `meta_target`, `offset_x`, `offset_y`) are available.
 You also need to specify `ms`, matching the mesh size of the registration run you want to use.
 
@@ -114,7 +112,7 @@ We can transform the segmentation of mIF to the Xenium slide.
 Here we did the segmentation using `Positive cell detection` in QuPath on DAPI mean and with a treshold at 17 (0µm cell expansion). Segmentation can be improved using other tools.
 
 ```{python}
-if_nucleus_geojson = Path("../COLON_Xenium_data/IF_HE/IF_colon_4_segmentation.geojson")
+if_nucleus_geojson = Path("../COLON_data/IF_HE/IF_colon_segmentation.geojson")
 # Transform coordinates
 xa.module.apply_sitk_transform(if_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y)
 ```
@@ -130,7 +128,7 @@ xa.data.export_xenium_to_pixel_geojson(XE_DIR, meta_target, output_dir_mif)
 ```
 
 ```{python}
-xe_nucleus_geojson = Path(output_dir_mif, "nucleus_xenium.geojson")
+xe_nucleus_geojson = Path(output_dir_mif, "XENIUM_nucleus.geojson")
 # Transform coordinates
 xa.module.apply_sitk_transform(xe_nucleus_geojson, output_dir_mif, meta_source, meta_target, ms, offset_x, offset_y, inverse = True)
 ```
@@ -139,46 +137,51 @@ xa.module.apply_sitk_transform(xe_nucleus_geojson, output_dir_mif, meta_source, 
 ### From xenium (target) to mIF (source)
 ```{python}
 # Alignement file from xenium explorer
-MATRIX_PATH = Path("../COLON_Xenium_data/IF_HE/IF_colon_4_alignment_files/matrix.csv")
+MATRIX_PATH = Path("../COLON_data/IF_HE/IF_colon_alignment_files/matrix.csv")
 # Transform coordinates
 xa.module.apply_affine_transform(xe_nucleus_geojson, output_dir_mif, MATRIX_PATH, inverse = True)
 ```
 
 ## Validation
-To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth mIF segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell's area recovered by the corresponding transformed cell). 
+To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth mIF segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell's area recovered by the corresponding transformed cell) and centroid distance error (the distance between the transformed cell's centroid and its matched ground-truth cell's centroid).
 
 We first visualize IoGT spatially across cells, then compare the distribution of IoGT and centroid distance error between the sITK (Rigid + Bspline) and Xeniume Explorer (Affine) transformations.
 
-Note that this metric is highly sensitive to the quality and consistency of both segmentations being compared. Here, the mIF segmentation is approximate, and any region where cells are missing in one slide but not the other will bias the score. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs. Xenium Explorer) on the same segmentation inputs.
+Note that this metrics are highly sensitive to the quality and consistency of both segmentations being compared. Here, the mIF segmentation is approximate, with cell boundaries that highly differ from the Xenium segmentation. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs. Xenium Explorer) on the same segmentation inputs.
 
 ::: {.callout-warning}
 If alignment via Xenium Explorer was performed on the full slide (with more than one sample), it cannot be directly compared to the sITK alignment. To make them comparable, first apply the Xenium Explorer transform to the cell coordinates in the full-slide coordinate system, then filter to the cells falling within the `ROI` (saved previously as `.geojson`), and subtract its top-left corner from their coordinates, this brings them into the same coordinate system as the cropped image used for sITK alignment.
 :::
 
+## Compute quality metrics
+### Definition of the ground thruth
 ```{python}
-# Metrics
-## Ground thruth
-if_nucleus_geojson = Path("../COLON_Xenium_data/IF_HE/IF_colon_4_segmentation.geojson")
-gdf_gt = xa.data.load_gdf_pixel_to_microns(if_nucleus_geojson, meta_source)
+he_nucleus_geojson = Path("../COLON_data/IF_HE/IF_colon_segmentation.geojson")
+gdf_gt = xa.data.load_gdf_pixel_to_microns(he_nucleus_geojson, meta_source)
+```
 
-## sITK
-transformed_inverse_10 = Path(output_dir_mif, f"transformed_inverse_{ms}.geojson")
-gdf_pred = xa.data.load_gdf_pixel_to_microns(transformed_inverse_10, meta_source)
-
+### sITK
+```{python}
+transformed_inverse = Path(output_dir_mif, f"XENIUM_nucleus_transformed_inverse_{ms}.geojson")
+gdf_pred = xa.data.load_gdf_pixel_to_microns(transformed_inverse, meta_source)
 best_matches_sitk = xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)
-output_iogt_spatial_sitk = os.path.join(output_dir_mif, f"iogt_spatial_sitk_{ms}.png")
-xa.plot.plot_spatial_alignment(best_matches_sitk, output_iogt_spatial_sitk)
+```
 
-## Affine
-affine_transformed_inverse = Path(output_dir_mif, "affine_transformed_inverse.geojson")
+### Affine
+```{python}
+affine_transformed_inverse = Path(output_dir_mif, "XENIUM_nucleus_transformed_inverse_affine.geojson")
 gdf_pred = xa.data.load_gdf_pixel_to_microns(affine_transformed_inverse, meta_source)
-
 best_matches_affine = xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)
-output_iogt_spatial_affine = os.path.join(output_dir_mif, "iogt_spatial_affine.png")
-xa.plot.plot_spatial_alignment(best_matches_affine, output_iogt_spatial_affine)
-
+```
 
 ## Comparison
+```{python}
+fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+xa.plot.plot_spatial_alignment(best_matches_sitk, ax=axes[0], title=f"sITK_{ms}")
+xa.plot.plot_spatial_alignment(best_matches_affine, ax=axes[1], title="Affine")
+plt.tight_layout()
+plt.savefig(os.path.join(output_dir_mif, f"iogt_spatial_comparison_{ms}.png"), dpi=300)
+
 output_iogt_comp = os.path.join(output_dir_mif, f"iogt_benchmark_{ms}.png")
 xa.plot.plot_iogt_distribution_comp(best_matches_sitk, "sITK", best_matches_affine, "Affine", output_iogt_comp)
 ```
@@ -192,19 +195,19 @@ xa.plot.plot_iogt_distribution_comp(best_matches_sitk, "sITK", best_matches_affi
 ## Paths
 ```{python Load }
 # HE
-HE_IMG_PATH = Path("../COLON_Xenium_data/IF_HE/HE_colon_4.ome.tif")
+HE_IMG_PATH = Path("../COLON_data/IF_HE/HE_colon.ome.tif")
 #HE_ADATA_PATH = Path("../xenium/1404/AN22001404_01_filtered.h5ad")
 # XENIUM
-XE_DIR = Path("../COLON_Xenium_data/xenium/")
+XE_DIR = Path("../COLON_data/xenium/")
 #XE_IMG_PATH = xa.data.get_xenium_image_paths(XE_DIR)
 # Output directory
-output_dir_he = Path("./COLON_HE_results")
+output_dir_he = Path("../COLON_HE_results")
 output_dir_he.mkdir(parents=True, exist_ok=True)
 ```
 
 ## Load images and metada
 ```{python Load }
-meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name = xa.data.load_images_and_metadata_he(HE_IMG_PATH, XE_DIR)
+meta_source, meta_target, offset_x, offset_y, proc_source, proc_target, combo_dir, combo_name = xa.data.load_images_and_metadata_he(HE_IMG_PATH, XE_DIR, output_dir_he)
 ```
 
 ## Visualize images
@@ -213,12 +216,12 @@ This helps assess how similar the two images are before running the registration
 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 axes[0].imshow(proc_source)
 axes[0].axis('off')
-axes[0].set_title('Source (mIF)', fontsize=10)
+axes[0].set_title('Source (H&E)', fontsize=10)
 axes[1].imshow(proc_target)
 axes[1].axis('off')
 axes[1].set_title('Target (Xenium)', fontsize=10)
 plt.tight_layout()
-plt.savefig(f'{output_dir_he}/processed_images.png', bbox_inches='tight', pad_inches=0)
+plt.savefig(f'{combo_dir}/processed_images.png', bbox_inches='tight', pad_inches=0)
 ```
 
 ## Registration
@@ -236,17 +239,17 @@ xa.plot.local_deformations(fixed, tx_bspline, combo_dir, ms)
 ```
 
 ## Transform with sITK (Rigid + Bspline)
-NOTE: The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
+The Transform section can be re-run independently of the Registration section (each registration run saves a .tfm transformation file with its mesh size appended to the filename).
 However, the "Load images and metadata" section must be executed first to ensure metadata (e.g., `meta_source`, `meta_target`, `offset_x`, `offset_y`, `combo_dir`) are available.
 You also need to specify `ms`, matching the mesh size of the registration run you want to use.
 
 ### From HE (source) to xenium (target)
 We can transform the segmentation of H&E to the Xenium slide. 
 
-Here we did the segmentation using `Positive cell detection` in QuPath on Eosin OD mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.
+Here we did the segmentation using `Positive cell detection` in QuPath on Hematoxylin OD mean and with a treshold at 0.01 (0µm cell expansion). Segmentation can be improved using other tools.
 
 ```{python}
-he_nucleus_geojson = Path("../COLON_Xenium_data/IF_HE/HE_colon_4_segmentation.geojson")
+he_nucleus_geojson = Path("../COLON_data/IF_HE/HE_colon_segmentation.geojson")
 xa.module.apply_sitk_transform(he_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y)
 ```
 
@@ -261,7 +264,7 @@ xa.data.export_xenium_to_pixel_geojson(XE_DIR, meta_target, combo_dir)
 ```
 
 ```{python}
-xe_nucleus_geojson = Path(combo_dir, "nucleus_xenium.geojson")
+xe_nucleus_geojson = Path(combo_dir, "XENIUM_nucleus.geojson")
 ## Transform coordinates
 xa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_target, ms, offset_x, offset_y, inverse = True)
 ```
@@ -270,45 +273,52 @@ xa.module.apply_sitk_transform(xe_nucleus_geojson, combo_dir, meta_source, meta_
 ### From xenium (target) to HE (source)
 ```{python}
 ## Alignement file from xenium explorer
-MATRIX_PATH = Path("../COLON_Xenium_data/IF_HE/HE_colon_4_alignment_files/matrix.csv")
+MATRIX_PATH = Path("../COLON_data/IF_HE/HE_colon_alignment_files/matrix.csv")
 ## Transform coordinates
 xa.module.apply_affine_transform(xe_nucleus_geojson, combo_dir, MATRIX_PATH, inverse = True)
 ```
 
 # Validation
-To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth H&E segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell's area recovered by the corresponding transformed cell).
+To validate the alignment, we compare the transformed Xenium cell segmentation against the ground-truth H&E segmentation, using Intersection over Ground Truth (IoGT, the fraction of each ground-truth cell's area recovered by the corresponding transformed cell) and centroid distance error (the distance between the transformed cell's centroid and its matched ground-truth cell's centroid).
 
 We first visualize IoGT spatially across cells, then compare the distribution of IoGT and centroid distance error between the sITK (Rigid + Bspline) and Xeniume Explorer (Affine) transformations.
 
-Note that this metric is highly sensitive to the quality and consistency of both segmentations being compared. Here, the H&E segmentation is approximate, and any region where cells are missing in one slide but not the other will bias the score. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs. Xenium Explorer) on the same segmentation inputs.
+Note that this metrics are highly sensitive to the quality and consistency of both segmentations being compared. Here, the H&E segmentation is approximate, with cell boundaries that highly differ from the Xenium segmentation. As such, IoGT should not be used as a standalone measure of alignment quality, but only to compare transformations relative to one another (e.g., sITK vs. Xenium Explorer) on the same segmentation inputs.
 
 ::: {.callout-warning}
 If alignment via Xenium Explorer was performed on the full slide (with more than one sample), it cannot be directly compared to the sITK alignment. To make them comparable, first apply the Xenium Explorer transform to the cell coordinates in the full-slide coordinate system, then filter to the cells falling within the `ROI` (saved previously as `.geojson`), and subtract its top-left corner from their coordinates, this brings them into the same coordinate system as the cropped image used for sITK alignment.
 :::
 
+
+## Compute quality metrics
+### Definition of the ground thruth
 ```{python}
-## Ground thruth
-he_nucleus_geojson = Path("../COLON_Xenium_data/IF_HE/HE_colon_4_segmentation.geojson")
+he_nucleus_geojson = Path("../COLON_data/IF_HE/HE_colon_segmentation.geojson")
 gdf_gt = xa.data.load_gdf_pixel_to_microns(he_nucleus_geojson, meta_source)
+```
 
-## sITK
-transformed_inverse = Path(combo_dir, f"transformed_inverse_{ms}.geojson")
+### sITK
+```{python}
+transformed_inverse = Path(combo_dir, f"XENIUM_nucleus_transformed_inverse_{ms}.geojson")
 gdf_pred = xa.data.load_gdf_pixel_to_microns(transformed_inverse, meta_source)
-
 best_matches_sitk = xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)
-output_iogt_spatial_sitk = os.path.join(combo_dir, f"iogt_spatial_sitk_{ms}.png")
-xa.plot.plot_spatial_alignment(best_matches_sitk, output_iogt_spatial_sitk)
+```
 
-## Affine
-affine_transformed_inverse = Path(combo_dir, "affine_transformed_inverse.geojson")
+### Affine
+```{python}
+affine_transformed_inverse = Path(combo_dir, "XENIUM_nucleus_transformed_inverse_affine.geojson")
 gdf_pred = xa.data.load_gdf_pixel_to_microns(affine_transformed_inverse, meta_source)
-
 best_matches_affine = xa.module.match_and_compute_iogt(gdf_pred, gdf_gt)
-output_iogt_spatial_affine = os.path.join(combo_dir, "iogt_spatial_affine.png")
-xa.plot.plot_spatial_alignment(best_matches_affine, output_iogt_spatial_affine)
-
+```
 
 ## Comparison
+```{python}
+fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+xa.plot.plot_spatial_alignment(best_matches_sitk, ax=axes[0], title=f"sITK_{ms}")
+xa.plot.plot_spatial_alignment(best_matches_affine, ax=axes[1], title="Affine")
+plt.tight_layout()
+plt.savefig(os.path.join(combo_dir, f"iogt_spatial_comparison_{ms}.png"), dpi=300)
+
 output_iogt_comp = os.path.join(combo_dir, f"iogt_benchmark_{ms}.png")
 xa.plot.plot_iogt_distribution_comp(best_matches_sitk, "sITK", best_matches_affine, "Affine", output_iogt_comp)
 ```
@@ -319,7 +329,7 @@ xa.plot.plot_iogt_distribution_comp(best_matches_sitk, "sITK", best_matches_affi
 
 
 
-
+  
 
 
 

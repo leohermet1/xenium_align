@@ -385,9 +385,9 @@ def export_xenium_to_pixel_geojson(
     """
     targets = []
     if export_cells:
-        targets.append(("cell_boundaries.parquet", "cells_xenium.geojson", "Cell"))
+        targets.append(("cell_boundaries.parquet", "XENIUM_cells.geojson", "Cell"))
     if export_nucleus:
-        targets.append(("nucleus_boundaries.parquet", "nucleus_xenium.geojson", "Nucleus"))
+        targets.append(("nucleus_boundaries.parquet", "XENIUM_nucleus.geojson", "Nucleus"))
         
     for filename, output_name, feature_class in targets:
         parquet_path = Path(xenium_dir) / filename
@@ -416,6 +416,7 @@ def export_xenium_to_pixel_geojson(
         # Create final geodataframe
         gdf = gpd.GeoDataFrame({'name': unique_ids, 'type': 'detection'}, geometry=geoms)
         gdf_fixed = _fix_geodataframe(gdf)
+        gdf_fixed["objectType"] = "detection"
         gdf_fixed.to_file(output_path)
 
 
