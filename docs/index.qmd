@@ -21,13 +21,13 @@ The alignment is image-based. Once the registration is finalized, the resulting 
 #### Why go beyond Xenium Explorer?
 **Image Alignment in Xenium Explorer** requires the user to manually define **anchor points** (landmarks) and relies on **Affine** transformations.
 
-In contrast, this automated approach removes the manual constraints with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.
+In contrast, this automated approach **removes the manual constraints** with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.
 
 Also, as noted in the [10x Genomics Analysis Guide](https://www.10xgenomics.com/analysis-guides/he-to-xenium-dapi-image-registration-with-fiji):
 
 > "Realistically, two different microscope systems will use different FOV boundaries and different preprocessing... Correcting for lens distortion requires nonlinear transformation and is a fundamentally different problem from image registration."
 
-By using a **B-Spline transformation**, we compensate for the "optical distortion" mentioned by 10x Genomics, resolving local non-linearities that fall outside the scope of a global affine transformation.
+By using a **B-Spline transformation**, we compensate for the "optical distortion" mentioned by 10x Genomics, resolving **local** non-linearities that fall outside the scope of a global affine transformation.
 
 ![Translation, Rotation (Rigid), Affine (Xenium Explorer Alignment), and Elastic (B-Spline).](images/transformation_types.png){fig-alt="Illustration of transformation types." fig-align="center"}
 

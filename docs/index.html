@@ -266,12 +266,12 @@ Workflow
 <section id="why-go-beyond-xenium-explorer" class="level4">
 <h4 class="anchored" data-anchor-id="why-go-beyond-xenium-explorer">Why go beyond Xenium Explorer?</h4>
 <p><strong>Image Alignment in Xenium Explorer</strong> requires the user to manually define <strong>anchor points</strong> (landmarks) and relies on <strong>Affine</strong> transformations.</p>
-<p>In contrast, this automated approach removes the manual constraints with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.</p>
+<p>In contrast, this automated approach <strong>removes the manual constraints</strong> with intensity-based registration. The process can be integrated into end-to-end pipelines, allowing for high-throughput analysis without the need for manual interaction or a graphical interface.</p>
 <p>Also, as noted in the <a href="https://www.10xgenomics.com/analysis-guides/he-to-xenium-dapi-image-registration-with-fiji">10x Genomics Analysis Guide</a>:</p>
 <blockquote class="blockquote">
 <p>“Realistically, two different microscope systems will use different FOV boundaries and different preprocessing… Correcting for lens distortion requires nonlinear transformation and is a fundamentally different problem from image registration.”</p>
 </blockquote>
-<p>By using a <strong>B-Spline transformation</strong>, we compensate for the “optical distortion” mentioned by 10x Genomics, resolving local non-linearities that fall outside the scope of a global affine transformation.</p>
+<p>By using a <strong>B-Spline transformation</strong>, we compensate for the “optical distortion” mentioned by 10x Genomics, resolving <strong>local</strong> non-linearities that fall outside the scope of a global affine transformation.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="images/transformation_types.png" class="img-fluid figure-img" alt="Illustration of transformation types."></p>
